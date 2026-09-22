@@ -124,8 +124,18 @@ export async function suggestSceneWithLLM(
   return { scene, reason: out.reason ?? '' };
 }
 
+/**
+ * True bila galat berasal dari proxy hosted (`claude-proxy`) menolak permintaan karena kredit
+ * akun pengguna habis (HTTP 402 — lihat `supabase/functions/claude-proxy/index.ts`). Beda dari
+ * galat lain: di sini pemanggil sebaiknya membuka modal isi-ulang, bukan jatuh ke mode simulasi.
+ */
+export function isInsufficientCreditsError(err: unknown): boolean {
+  return err instanceof Anthropic.APIError && err.status === 402;
+}
+
 /** Ubah galat SDK menjadi pesan yang dapat dipahami pengguna. */
 export function describeLlmError(err: unknown): string {
+  if (isInsufficientCreditsError(err)) return 'Kredit Anda habis. Isi ulang untuk melanjutkan.';
   if (err instanceof Anthropic.AuthenticationError) return 'Kunci API Anthropic tidak valid. Periksa di Pengaturan.';
   if (err instanceof Anthropic.PermissionDeniedError) return 'Kunci API tidak memiliki izin untuk model ini.';
   if (err instanceof Anthropic.NotFoundError) return 'Model tidak ditemukan. Pilih model lain di Pengaturan.';

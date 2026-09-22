@@ -2,6 +2,7 @@ import { CheckCircle2, Clock, FilePlus2, Loader2, Moon, Play, Redo2, Settings, S
 import { useProjectStore } from '../../store/projectStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
+import { AccountWidget } from '../common/AccountWidget';
 import { BrandName } from '../common/Brand';
 import { Button, IconButton } from '../common/ui';
 import { ExportMenu } from './ExportMenu';
@@ -86,6 +87,8 @@ export function TopBar() {
             <FilePlus2 className="size-4" />
           </IconButton>
         </span>
+        <span className="mx-1 h-5 w-px bg-line max-md:hidden" />
+        <AccountWidget className="max-md:hidden" />
         <span className="mx-1 h-5 w-px bg-line max-md:hidden" />
         <ExportMenu />
         <Button

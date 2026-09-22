@@ -1,15 +1,18 @@
 import { ArrowRight, FileUp, FolderOpen, Settings, Sparkles, Trash2, Wand2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { ACCEPTED_TYPES, importFile } from '../../services/importers';
-import { describeLlmError, generateOutlineWithLLM, llmConfigured } from '../../services/ai/llm';
+import { describeLlmError, generateOutlineWithLLM, isInsufficientCreditsError, llmConfigured } from '../../services/ai/llm';
 import { generateMockOutline } from '../../services/ai/mockGenerator';
 import { outlineToSlides, type Outline } from '../../services/ai/outline';
 import { useTypewriter } from '../../hooks/useTypewriter';
+import { CLAUDE_PROXY_URL } from '../../services/supabase';
+import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
 import type { Language, Tone } from '../../types';
 import { cn } from '../../utils/cn';
+import { AccountWidget } from '../common/AccountWidget';
 import { BrandName } from '../common/Brand';
 import { StageShell } from '../common/StageShell';
 import { Button, Field, IconButton, Segmented, Slider, inputClass } from '../common/ui';
@@ -46,7 +49,12 @@ export function Onboarding() {
 
   const project = useProjectStore((s) => s.project);
   const settings = useSettingsStore();
-  const hasLlm = llmConfigured({ apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl });
+  const session = useAuthStore((s) => s.session);
+  const credits = useAuthStore((s) => s.credits);
+  // Masuk dengan Google → pakai backend hosted (kredit akun, tanpa perlu kunci API sendiri).
+  // Belum masuk → pakai kunci Anthropic pribadi dari Pengaturan bila diisi, atau mode simulasi.
+  const usingHosted = !!session;
+  const hasLlm = usingHosted || llmConfigured({ apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl });
   const toast = useUIStore.getState().toast;
 
   const generate = async () => {
@@ -58,13 +66,21 @@ export function Onboarding() {
     abortRef.current = ac;
     setBusy('ai');
     const req = { topic, tone, language, slideCount: count };
+    const llmCfg = usingHosted
+      ? { apiKey: session.access_token, model: settings.anthropicModel, baseUrl: CLAUDE_PROXY_URL }
+      : { apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl };
     try {
       let outline: Outline;
       if (hasLlm) {
         try {
-          outline = await generateOutlineWithLLM(req, { apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl }, ac.signal);
+          outline = await generateOutlineWithLLM(req, llmCfg, ac.signal);
         } catch (err) {
           if (ac.signal.aborted) return;
+          if (usingHosted && isInsufficientCreditsError(err)) {
+            toast(describeLlmError(err), 'error');
+            useUIStore.getState().openModal('billing');
+            return;
+          }
           toast(`${describeLlmError(err)} Beralih ke mode simulasi.`, 'error');
           outline = await generateMockOutline(req, ac.signal);
         }
@@ -105,11 +121,14 @@ export function Onboarding() {
   return (
     <StageShell className="aurora overflow-y-auto">
       <div className="mx-auto flex min-h-full max-w-5xl flex-col px-6 pb-16 pt-6">
-        <header className="flex items-center justify-between">
+        <header className="flex items-center justify-between gap-2">
           <BrandName />
-          <IconButton label="Pengaturan" onClick={() => useUIStore.getState().openModal('settings')}>
-            <Settings className="size-4" />
-          </IconButton>
+          <div className="flex items-center gap-2">
+            <AccountWidget />
+            <IconButton label="Pengaturan" onClick={() => useUIStore.getState().openModal('settings')}>
+              <Settings className="size-4" />
+            </IconButton>
+          </div>
         </header>
 
         <section className="mx-auto mt-14 max-w-3xl text-center">
@@ -173,9 +192,16 @@ export function Onboarding() {
               <Slider label="Jumlah slide" min={4} max={20} step={1} value={count} format={(v) => `${v} slide`} onChange={setCount} />
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <button onClick={() => useUIStore.getState().openModal('settings')} className="flex items-center gap-2 text-xs text-muted hover:text-fg">
+                <button
+                  onClick={() => useUIStore.getState().openModal(usingHosted ? 'billing' : 'settings')}
+                  className="flex items-center gap-2 text-xs text-muted hover:text-fg"
+                >
                   <span className={cn('size-2 rounded-full', hasLlm ? 'bg-emerald-400' : 'bg-amber-400')} />
-                  {hasLlm ? `Claude aktif · ${settings.anthropicModel}` : 'Mode simulasi offline · atur API key untuk Claude'}
+                  {usingHosted
+                    ? `Claude aktif · ${credits ?? '…'} kredit tersisa`
+                    : hasLlm
+                      ? `Claude aktif · ${settings.anthropicModel}`
+                      : 'Mode simulasi offline · masuk dengan Google atau atur API key sendiri'}
                 </button>
                 <div className="flex gap-2">
                   {busy === 'ai' && <Button onClick={() => abortRef.current?.abort()}>Batal</Button>}

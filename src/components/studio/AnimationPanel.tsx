@@ -2,9 +2,11 @@ import { Film, Search, Sparkles, Trash2, Upload, Wand2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SCENES, SCENE_H, SCENE_W, drawScene, suggestScenes } from '../../engine';
 import { useAssets } from '../../hooks/useAssets';
-import { llmConfigured, suggestSceneWithLLM } from '../../services/ai/llm';
+import { describeLlmError, isInsufficientCreditsError, llmConfigured, suggestSceneWithLLM } from '../../services/ai/llm';
 import { searchGifs, type GifCandidate } from '../../services/media/giphy';
 import { MAX_GIF_BYTES, MAX_VIDEO_BYTES } from '../../services/media/assets';
+import { CLAUDE_PROXY_URL } from '../../services/supabase';
+import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
@@ -60,6 +62,8 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
   const anthropicKey = useSettingsStore((s) => s.anthropicKey);
   const anthropicBaseUrl = useSettingsStore((s) => s.anthropicBaseUrl);
   const anthropicModel = useSettingsStore((s) => s.anthropicModel);
+  const session = useAuthStore((s) => s.session);
+  const usingHosted = !!session;
   const { busy, uploadMotion, applyScene, applyGif, applyMotion } = useAssets();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -80,16 +84,19 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
   const suggested = new Set(suggestions.map((s) => s.scene.id));
   const currentScene = slide.imageId ? project.assets[slide.imageId]?.anim?.scene : undefined;
   const library = Object.values(project.assets).filter((a) => a.anim);
-  const llmOn = llmConfigured({ apiKey: anthropicKey, model: anthropicModel, baseUrl: anthropicBaseUrl });
+  const llmOn = usingHosted || llmConfigured({ apiKey: anthropicKey, model: anthropicModel, baseUrl: anthropicBaseUrl });
 
   const askAi = async () => {
     setAiBusy(true);
     setAiNote('');
     try {
+      const llmCfg = usingHosted
+        ? { apiKey: session.access_token, model: anthropicModel, baseUrl: CLAUDE_PROXY_URL }
+        : { apiKey: anthropicKey, model: anthropicModel, baseUrl: anthropicBaseUrl };
       const r = await suggestSceneWithLLM(
         slide,
         SCENES.map((s) => ({ id: s.id, label: s.label, description: s.description })),
-        { apiKey: anthropicKey, model: anthropicModel, baseUrl: anthropicBaseUrl },
+        llmCfg,
       );
       if (r.scene) {
         applyScene(slide.id, r.scene);
@@ -98,7 +105,8 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
         setAiNote(`AI menilai tidak ada animasi bawaan yang cocok. ${r.reason}`);
       }
     } catch (err) {
-      setAiNote(err instanceof Error ? err.message : 'Gagal meminta AI');
+      if (usingHosted && isInsufficientCreditsError(err)) useUIStore.getState().openModal('billing');
+      setAiNote(describeLlmError(err));
     } finally {
       setAiBusy(false);
     }

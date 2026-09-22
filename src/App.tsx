@@ -5,10 +5,13 @@ import { GeneratingStage } from './components/generating/GeneratingStage';
 import { Onboarding } from './components/onboarding/Onboarding';
 import { OutlineStage } from './components/outline/OutlineStage';
 import { PresentationMode } from './components/presentation/PresentationMode';
+import { BillingModal } from './components/studio/BillingModal';
 import { SettingsModal } from './components/studio/SettingsModal';
 import { Studio } from './components/studio/Studio';
 import { VersionHistory } from './components/studio/VersionHistory';
 import { useProjectStore } from './store/projectStore';
+// Memasang langganan status sesi Supabase sekali di seluruh aplikasi (efek samping level modul).
+import './store/authStore';
 import { applyUiTheme, useSettingsStore } from './store/settingsStore';
 import { useUIStore } from './store/uiStore';
 
@@ -79,6 +82,7 @@ export default function App() {
         <>
           <SettingsModal />
           <VersionHistory />
+          <BillingModal />
           <Toaster />
         </>
       )}

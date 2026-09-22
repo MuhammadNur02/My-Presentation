@@ -10,3 +10,6 @@ src/services/export/generated
 *.pem
 *.key
 
+# Dibuat otomatis oleh Supabase CLI (state lokal/temp) — bukan sumber, jangan di-commit.
+supabase/.branches
+supabase/.temp

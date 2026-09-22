@@ -5,7 +5,7 @@ import { uid } from '../utils/id';
 
 export type Stage = 'onboarding' | 'outline' | 'generating' | 'studio';
 export type LeftTab = 'slide' | 'layout' | 'motion' | 'transition' | 'assets' | 'theme';
-export type ModalId = 'settings' | 'history' | null;
+export type ModalId = 'settings' | 'history' | 'billing' | null;
 
 export interface Toast {
   id: string;
