@@ -2,3 +2,11 @@ node_modules
 dist
 src/services/export/generated
 *.local
+
+# Rahasia — JANGAN PERNAH commit kunci API sungguhan (backend proxy, CI, dsb.)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+

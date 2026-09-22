@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// Semua tulis-menulis kredit (kurangi/tambah) HANYA lewat Cloud Functions (Admin SDK memotong aturan
+// ini sepenuhnya) — dari klien, dokumen pengguna hanya boleh DIBACA oleh pemiliknya sendiri, tidak
+// pernah ditulis langsung. Ini mencegah pengguna curang mengubah saldo kreditnya sendiri lewat konsol
+// browser.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+
+      match /transactions/{transactionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+  }
+}
