@@ -1,0 +1,40 @@
+{
+  "name": "morph-deck",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Platform presentasi interaktif berbasis AI dengan transisi 3D/WebGL Morph",
+  "scripts": {
+    "build:runtime": "vite build --config vite.runtime.config.ts",
+    "predev": "npm run build:runtime",
+    "dev": "vite",
+    "prebuild": "npm run build:runtime",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
+    "clsx": "^2.1.1",
+    "gsap": "^3.15.0",
+    "idb-keyval": "^6.3.0",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.47.0",
+    "mammoth": "^1.12.3",
+    "pdfjs-dist": "^6.3.289",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "^0.186.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}

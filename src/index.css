@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Token desain UI studio (terpisah dari tema slide). Gaya ala Apple/Keynote. */
+:root {
+  --c-bg: #f2f2f5;
+  --c-panel: rgba(255, 255, 255, 0.78);
+  --c-solid: #ffffff;
+  --c-elev: #ffffff;
+  --c-line: rgba(0, 0, 0, 0.09);
+  --c-fg: #1d1d1f;
+  --c-muted: #6e6e73;
+  --c-accent: #6d5efc;
+  --c-accent-soft: rgba(109, 94, 252, 0.12);
+  --c-field: rgba(0, 0, 0, 0.045);
+  --c-field-hover: rgba(0, 0, 0, 0.08);
+  --shadow-pop: 0 24px 60px -20px rgba(20, 20, 40, 0.35);
+  color-scheme: light;
+}
+
+.dark {
+  --c-bg: #08080a;
+  --c-panel: rgba(26, 26, 30, 0.72);
+  --c-solid: #141416;
+  --c-elev: #1c1c20;
+  --c-line: rgba(255, 255, 255, 0.09);
+  --c-fg: #f5f5f7;
+  --c-muted: #9a9aa4;
+  --c-accent: #8b7cff;
+  --c-accent-soft: rgba(139, 124, 255, 0.16);
+  --c-field: rgba(255, 255, 255, 0.06);
+  --c-field-hover: rgba(255, 255, 255, 0.11);
+  --shadow-pop: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-panel: var(--c-panel);
+  --color-solid: var(--c-solid);
+  --color-elev: var(--c-elev);
+  --color-line: var(--c-line);
+  --color-fg: var(--c-fg);
+  --color-muted: var(--c-muted);
+  --color-accent: var(--c-accent);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-field: var(--c-field);
+  --color-field-hover: var(--c-field-hover);
+  --font-sans: "SF Pro Text", "SF Pro Display", "Segoe UI Variable Text", "Segoe UI", Inter, system-ui, -apple-system,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+/* Kaca buram ala macOS */
+.glass {
+  background: var(--c-panel);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+}
+
+/* Latar aurora halaman awal */
+.aurora {
+  background:
+    radial-gradient(60% 50% at 20% 10%, rgba(139, 124, 255, 0.28), transparent 70%),
+    radial-gradient(50% 45% at 85% 20%, rgba(34, 211, 238, 0.2), transparent 70%),
+    radial-gradient(60% 60% at 60% 100%, rgba(251, 113, 133, 0.16), transparent 70%),
+    var(--c-bg);
+}
+
+/* Scrollbar tipis */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-line) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--c-line);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--c-field-hover);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: pop-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes orb {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(8%, -6%) scale(1.08);
+  }
+  66% {
+    transform: translate(-6%, 8%) scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
