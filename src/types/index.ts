@@ -24,7 +24,8 @@ export type TransitionId =
   | 'magic'
   | 'crosszoom'
   | 'iris'
-  | 'stripes';
+  | 'stripes'
+  | 'punchzoom';
 
 /** Nama ease GSAP yang tidak overshoot (aman untuk shader). */
 export type EasingId =
@@ -196,7 +197,7 @@ export type Tone = 'professional' | 'creative' | 'minimal' | 'educational';
 export type Creator = 'mahasiswa' | 'siswa' | 'karyawan';
 export type Language = 'id' | 'en';
 export type FontStyle = 'sans' | 'serif' | 'mono' | 'grotesk' | 'elegant' | 'rounded' | 'condensed';
-export type PatternId = 'none' | 'dots' | 'grid' | 'diagonal' | 'arcs' | 'waves';
+export type PatternId = 'none' | 'dots' | 'grid' | 'diagonal' | 'arcs' | 'waves' | 'blockblob';
 
 export interface ThemeConfig {
   presetId: string;

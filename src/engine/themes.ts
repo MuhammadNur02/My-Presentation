@@ -47,6 +47,7 @@ export const PATTERN_OPTIONS: { id: PatternId; label: string }[] = [
   { id: 'diagonal', label: 'Diagonal' },
   { id: 'arcs', label: 'Busur' },
   { id: 'waves', label: 'Gelombang' },
+  { id: 'blockblob', label: 'Blok & Blob' },
 ];
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -217,6 +218,20 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: '#b45309',
     accent2: '#0f766e',
     pattern: 'diagonal',
+  },
+  {
+    id: 'akademik',
+    name: 'Akademik',
+    mode: 'light',
+    bg1: '#ffffff',
+    bg2: '#f4f3ee',
+    surface: 'rgba(0,0,0,0.04)',
+    border: 'rgba(0,0,0,0.09)',
+    text: '#1a2340',
+    muted: '#5b6178',
+    accent: '#1e2a54',
+    accent2: '#d4a017',
+    pattern: 'blockblob',
   },
 ];
 

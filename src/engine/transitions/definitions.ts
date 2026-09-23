@@ -551,6 +551,56 @@ vec4 shadeFragment(vec2 uv, float shade, float alpha) {
 }
 `;
 
+/**
+ * Punch Zoom: dorongan kedalaman Z sungguhan (seperti Zoom 3D) DIGABUNG dengan pergeseran diagonal
+ * searah sapuan — kesan kamera menembus sekaligus menyapu ke satu arah, bukan zoom simetris murni.
+ */
+const PUNCHZOOM_VERTEX = /* glsl */ `
+void transformVertex(inout vec3 pos, vec2 uv, inout float shade, inout float alpha) {
+  float p = uProgress;
+  float I = min(uIntensity, 1.6);
+  vec2 dir = normalize(vec2(1.0, 0.55));
+  if (uLayer < 0.5) {
+    float e = p * p;
+    pos.z += e * 6.0 * I;
+    pos.xy += dir * e * uSize.x * 0.16 * I;
+    shade = 1.0 - 0.4 * p;
+  } else {
+    float q = 1.0 - p;
+    float e = q * q;
+    pos.z += -e * 5.0 * I;
+    pos.xy -= dir * e * uSize.x * 0.16 * I;
+    shade = mix(0.6, 1.0, p);
+  }
+}
+`;
+
+/** Blur arah gerak (bukan radial simetris seperti Warp Zoom) — mereplikasi "kamera menyapu". */
+const PUNCHZOOM_FRAGMENT = /* glsl */ `
+vec4 shadeFragment(vec2 uv, float shade, float alpha) {
+  float p = uProgress;
+  float I = clamp(uIntensity, 0.4, 2.0);
+  vec2 dir = normalize(vec2(1.0, 0.55));
+  float strength = sin(p * PI) * 0.05 * I;
+  vec2 c = uv - 0.5;
+  float scale = uLayer < 0.5 ? mix(1.0, 1.3, p) : mix(0.78, 1.0, p);
+  vec4 acc = vec4(0.0);
+  float wsum = 0.0;
+  const int N = 12;
+  for (int i = 0; i < N; i++) {
+    float t = float(i) / float(N - 1);
+    float w = 1.0 - t * 0.5;
+    vec2 st = 0.5 + c * scale - dir * strength * t;
+    acc += texture2D(uMap, st) * w;
+    wsum += w;
+  }
+  vec4 col = acc / wsum;
+  col.rgb *= shade;
+  col.a = uLayer > 0.5 ? smoothstep(0.1, 0.8, p) : 1.0;
+  return col;
+}
+`;
+
 /* ------------------------------------------------------------------ */
 /* Registri                                                            */
 /* ------------------------------------------------------------------ */
@@ -812,6 +862,17 @@ export const TRANSITIONS: Record<TransitionId, TransitionDefinition> = {
     fragment: STRIPES_FRAGMENT,
     onTop: inTop,
     defaults: { duration: 1.2, easing: 'power2.inOut', intensity: 1 },
+  },
+  punchzoom: {
+    id: 'punchzoom',
+    label: 'Punch Zoom',
+    description: 'Kamera menembus sekaligus menyapu diagonal dengan blur arah gerak.',
+    category: 'Efek',
+    segments: [1, 1],
+    vertex: PUNCHZOOM_VERTEX,
+    fragment: PUNCHZOOM_FRAGMENT,
+    onTop: (dir) => (dir > 0 ? 'out' : 'in'),
+    defaults: { duration: 1.1, easing: 'power2.inOut', intensity: 1 },
   },
 };
 

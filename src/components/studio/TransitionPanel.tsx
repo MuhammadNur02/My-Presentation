@@ -3,6 +3,7 @@ import {
   Aperture,
   Barcode,
   Box,
+  Camera,
   CircleDot,
   DoorOpen,
   Dices,
@@ -62,6 +63,7 @@ const ICONS: Record<TransitionId, ReactNode> = {
   crosszoom: <Rocket className={ICON} />,
   iris: <Aperture className={ICON} />,
   stripes: <Barcode className={ICON} />,
+  punchzoom: <Camera className={ICON} />,
 };
 
 /** Pustaka transisi 3D/WebGL + parameter. Setiap perubahan otomatis diputar di Live Monitor. */

@@ -103,6 +103,61 @@ function glowsFor(theme: ResolvedTheme, seedKey: string): Glow[] {
   });
 }
 
+/** Jalur blob organik: poligon acak-tapi-deterministik (seed tetap) dihaluskan dengan quadraticCurveTo per titik. */
+function blobPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, wobble: number, points: number, seed: number): void {
+  const rnd = mulberry32(seed);
+  const pts: [number, number][] = Array.from({ length: points }, (_, i) => {
+    const a = (i / points) * TAU;
+    const rad = r * (1 - wobble / 2 + rnd() * wobble);
+    return [cx + Math.cos(a) * rad, cy + Math.sin(a) * rad];
+  });
+  const mid = (a: [number, number], b: [number, number]): [number, number] => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const start = mid(pts[pts.length - 1], pts[0]);
+  ctx.beginPath();
+  ctx.moveTo(start[0], start[1]);
+  for (let i = 0; i < points; i++) {
+    const cur = pts[i];
+    const next = pts[(i + 1) % points];
+    const m = mid(cur, next);
+    ctx.quadraticCurveTo(cur[0], cur[1], m[0], m[1]);
+  }
+  ctx.closePath();
+}
+
+/** Panel warna diagonal terpotong di pojok kanan-atas — motif "blok" terinspirasi templat Canva. */
+function paintCornerBlock(ctx: CanvasRenderingContext2D, theme: ResolvedTheme): void {
+  const cut = W * 0.22;
+  const a = theme.mode === 'dark' ? 0.32 : 0.14;
+  const g = ctx.createLinearGradient(W - cut - 240, 0, W, H * 0.58);
+  g.addColorStop(0, rgba(theme.accent, a * 0.55));
+  g.addColorStop(1, rgba(theme.accent2, a));
+  ctx.save();
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(W, 0);
+  ctx.lineTo(W, H * 0.62);
+  ctx.lineTo(W - cut, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Aksen blob organik lembut di pojok kiri-bawah — motif "blob" terinspirasi templat Canva. */
+function paintCornerBlob(ctx: CanvasRenderingContext2D, theme: ResolvedTheme): void {
+  const cx = W * 0.07;
+  const cy = H * 0.95;
+  const r = 210;
+  const a = theme.mode === 'dark' ? 0.28 : 0.16;
+  ctx.save();
+  blobPath(ctx, cx, cy, r, 0.35, 9, hashString('theme-blockblob'));
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.3);
+  g.addColorStop(0, rgba(theme.accent2, a));
+  g.addColorStop(1, rgba(theme.accent2, 0));
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.restore();
+}
+
 /**
  * Pola dekoratif tipis di latar. Memudar di tengah (tempat teks) dan menguat di tepi agar teks tetap
  * terbaca; digambar di lapisan latar sehingga ikut ke semua jalur render.
@@ -110,6 +165,13 @@ function glowsFor(theme: ResolvedTheme, seedKey: string): Glow[] {
 function paintPattern(ctx: CanvasRenderingContext2D, theme: ResolvedTheme): void {
   const kind = theme.pattern;
   if (!kind || kind === 'none') return;
+  if (kind === 'blockblob') {
+    // Beda dari pola lain di bawah (tekstur abu-abu tipis dari theme.text): pola ini SENGAJA memakai
+    // warna aksen tema sebagai motif desain yang terlihat jelas, bukan tekstur latar yang halus.
+    paintCornerBlock(ctx, theme);
+    paintCornerBlob(ctx, theme);
+    return;
+  }
   const a = theme.mode === 'dark' ? 0.1 : 0.085;
   const g = ctx.createRadialGradient(W / 2, H / 2, 240, W / 2, H / 2, 1180);
   g.addColorStop(0, rgba(theme.text, a * 0.2));
