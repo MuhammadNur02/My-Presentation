@@ -236,6 +236,12 @@ export interface Project {
   logoId: string | null;
   theme: ThemeConfig;
   motionStyle?: MotionStyle;
+  /**
+   * 'free' = dibuat lewat impor dokumen tanpa AI berbayar (kredit) — fitur AI & ekspor sumber
+   * dibatasi, dan presentasinya memakai watermark. Tak diisi (undefined) atau 'full' = tanpa batasan
+   * (dibuat dari prompt AI, baik lewat kredit hosted, kunci sendiri, maupun mode simulasi).
+   */
+  tier?: 'free' | 'full';
 }
 
 export interface Snapshot {
@@ -258,6 +264,8 @@ export interface DeckData {
   /** Aset (id) yang bergerak: GIF, video, atau adegan generatif. */
   anims?: Record<string, AssetAnim>;
   logoId: string | null;
+  /** Proyek `tier: 'free'` — tampilkan lencana watermark kecil saat presentasi (live & hasil ekspor). */
+  watermark?: boolean;
 }
 
 export type QualityTier = 'low' | 'medium' | 'high';

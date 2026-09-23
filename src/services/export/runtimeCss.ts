@@ -48,4 +48,9 @@ body.presenting.notes-on #notes{display:flex}
 #toast{position:absolute;left:50%;bottom:5.4rem;transform:translate(-50%,10px);padding:.6rem 1.1rem;border-radius:999px;font-size:.82rem;
   background:rgba(18,18,22,.86);color:#fff;border:1px solid rgba(255,255,255,.12);opacity:0;pointer-events:none;transition:.3s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 #toast.on{opacity:1;transform:translate(-50%,0)}
+
+#watermark{position:absolute;right:1rem;bottom:1rem;z-index:5;padding:.45rem .8rem;border-radius:999px;font-size:.72rem;
+  color:rgba(255,255,255,.8);background:rgba(20,20,26,.65);border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(10px);pointer-events:none;user-select:none}
+#watermark b{font-weight:700;color:#fff}
 `;

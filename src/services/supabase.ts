@@ -12,3 +12,11 @@ export const supabase = createClient(url || 'https://placeholder.supabase.co', a
 
 /** URL Edge Function proxy Claude — mengikuti pola baku Supabase (`<SUPABASE_URL>/functions/v1/<nama>`). */
 export const CLAUDE_PROXY_URL = url ? `${url}/functions/v1/claude-proxy` : '';
+
+/**
+ * Model yang dipakai untuk SEMUA pengguna hosted (login Google, bayar pakai kredit) — TETAP, bukan
+ * pilihan pengguna, demi kendali biaya API pemilik aplikasi (struktur harga kredit dihitung berdasar
+ * model ini — lihat `supabase/functions/_shared/packages.ts`). Pengguna yang memakai kunci Anthropic
+ * sendiri (BYOK, lewat Pengaturan) tetap bebas memilih model apa pun.
+ */
+export const HOSTED_MODEL = 'claude-sonnet-5';

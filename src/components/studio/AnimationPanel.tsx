@@ -5,7 +5,7 @@ import { useAssets } from '../../hooks/useAssets';
 import { describeLlmError, isInsufficientCreditsError, llmConfigured, suggestSceneWithLLM } from '../../services/ai/llm';
 import { searchGifs, type GifCandidate } from '../../services/media/giphy';
 import { MAX_GIF_BYTES, MAX_VIDEO_BYTES } from '../../services/media/assets';
-import { CLAUDE_PROXY_URL } from '../../services/supabase';
+import { CLAUDE_PROXY_URL, HOSTED_MODEL } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -63,7 +63,11 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
   const anthropicBaseUrl = useSettingsStore((s) => s.anthropicBaseUrl);
   const anthropicModel = useSettingsStore((s) => s.anthropicModel);
   const session = useAuthStore((s) => s.session);
+  const credits = useAuthStore((s) => s.credits);
   const usingHosted = !!session;
+  const outOfCredits = usingHosted && credits !== null && credits <= 0;
+  // Proyek hasil impor dokumen (mode gratis) tidak memakai fitur AI berbayar sama sekali.
+  const isFreeTier = project.tier === 'free';
   const { busy, uploadMotion, applyScene, applyGif, applyMotion } = useAssets();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -84,14 +88,19 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
   const suggested = new Set(suggestions.map((s) => s.scene.id));
   const currentScene = slide.imageId ? project.assets[slide.imageId]?.anim?.scene : undefined;
   const library = Object.values(project.assets).filter((a) => a.anim);
-  const llmOn = usingHosted || llmConfigured({ apiKey: anthropicKey, model: anthropicModel, baseUrl: anthropicBaseUrl });
+  const llmOn = !isFreeTier && (usingHosted || llmConfigured({ apiKey: anthropicKey, model: anthropicModel, baseUrl: anthropicBaseUrl }));
 
   const askAi = async () => {
+    if (outOfCredits) {
+      useUIStore.getState().openModal('billing');
+      return;
+    }
     setAiBusy(true);
     setAiNote('');
     try {
+      // Model hosted TETAP (bukan pilihan pengguna) demi kendali biaya API pemilik — lihat HOSTED_MODEL.
       const llmCfg = usingHosted
-        ? { apiKey: session.access_token, model: anthropicModel, baseUrl: CLAUDE_PROXY_URL }
+        ? { apiKey: session.access_token, model: HOSTED_MODEL, baseUrl: CLAUDE_PROXY_URL }
         : { apiKey: anthropicKey, model: anthropicModel, baseUrl: anthropicBaseUrl };
       const r = await suggestSceneWithLLM(
         slide,
@@ -148,8 +157,13 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
         )}
         {llmOn && (
           <Button size="sm" className="mb-3 w-full" loading={aiBusy} icon={<Wand2 className="size-3.5" />} onClick={() => void askAi()}>
-            Minta AI memilih animasi untuk slide ini
+            {outOfCredits ? 'Kredit habis — isi ulang' : 'Minta AI memilih animasi untuk slide ini'}
           </Button>
+        )}
+        {isFreeTier && (
+          <p className="mb-3 text-[11.5px] leading-relaxed text-muted">
+            Fitur AI tidak tersedia untuk proyek hasil impor dokumen (mode gratis) — pilih animasi manual di bawah, atau buat presentasi baru dari prompt AI untuk fitur penuh.
+          </p>
         )}
         {aiNote && <p className="mb-3 text-[11.5px] leading-relaxed text-muted">{aiNote}</p>}
         <div className="grid grid-cols-2 gap-2.5">

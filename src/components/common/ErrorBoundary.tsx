@@ -1,5 +1,4 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { useUIStore } from '../../store/uiStore';
 import { Button } from './ui';
 
 interface State {
@@ -29,9 +28,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
           <div className="mt-5 flex justify-center gap-2">
             <Button
               onClick={() => {
-                useUIStore.getState().stopPresenting();
-                useUIStore.getState().setStage('onboarding');
-                this.setState({ error: null });
+                // Navigasi paksa (bukan lewat router — ErrorBoundary harus tetap bekerja meski
+                // Router sendiri yang bermasalah) sekaligus me-refresh seluruh state aplikasi.
+                window.location.assign('/dashboard/projects');
               }}
             >
               Ke beranda

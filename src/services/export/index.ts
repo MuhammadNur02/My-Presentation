@@ -2,10 +2,12 @@ import JSZip from 'jszip';
 import type { Project } from '../../types';
 import { dataUrlToBlob, slugify } from '../../utils/download';
 import { buildStandaloneHtml } from './buildHtml';
+import { projectToJson } from './projectJson';
 
 export { buildStandaloneHtml } from './buildHtml';
+export { projectToJson } from './projectJson';
 
-const README = (name: string) => `${name}
+const README = (name: string, includesProjectFile: boolean) => `${name}
 ${'='.repeat(name.length)}
 
 Presentasi interaktif dengan transisi 3D/WebGL Morph (dibuat dengan MorphDeck).
@@ -27,9 +29,8 @@ KONTROL
 
 ISI ARSIP
   index.html ............. presentasi mandiri (semua skrip, gambar, dan konfigurasi tertanam)
-  project.morphdeck.json . berkas proyek — impor kembali ke MorphDeck untuk menyunting
-  assets/ ................ salinan gambar/logo/GIF/video asli untuk dipakai ulang
-`;
+${includesProjectFile ? '  project.morphdeck.json . berkas proyek — impor kembali ke MorphDeck untuk menyunting\n' : ''}  assets/ ................ salinan gambar/logo/GIF/video asli untuk dipakai ulang
+${includesProjectFile ? '' : '\nCatatan: proyek ini dibuat lewat impor dokumen (mode gratis) — berkas proyek yang bisa disunting ulang (.json) tidak disertakan. Buat presentasi baru dari prompt AI untuk ekspor penuh.\n'}`;
 
 const EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -40,16 +41,14 @@ const EXT: Record<string, string> = {
   'video/webm': 'webm',
 };
 
-export function projectToJson(project: Project): string {
-  return JSON.stringify({ format: 'morphdeck-project', version: 1, project }, null, 2);
-}
-
-/** Arsip ZIP: index.html mandiri + README + berkas proyek + salinan aset. */
+/** Arsip ZIP: index.html mandiri + README + berkas proyek (kecuali mode gratis) + salinan aset. */
 export async function buildZip(project: Project): Promise<Blob> {
+  // Mode gratis (proyek hasil impor dokumen): jangan sertakan sumber .json yang bisa diedit ulang.
+  const includesProjectFile = project.tier !== 'free';
   const zip = new JSZip();
   zip.file('index.html', buildStandaloneHtml(project));
-  zip.file('README.txt', README(project.name));
-  zip.file('project.morphdeck.json', projectToJson(project));
+  zip.file('README.txt', README(project.name, includesProjectFile));
+  if (includesProjectFile) zip.file('project.morphdeck.json', projectToJson(project));
 
   const assets = zip.folder('assets')!;
   const used = new Set<string>();

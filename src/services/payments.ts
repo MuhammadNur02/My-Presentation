@@ -13,9 +13,10 @@ export interface CreditPackage {
  * Ubah keduanya bersamaan bila paket berubah.
  */
 export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'pack_10', credits: 10, price: 15_000, name: '10 kredit' },
-  { id: 'pack_50', credits: 50, price: 60_000, name: '50 kredit (hemat)' },
-  { id: 'pack_150', credits: 150, price: 150_000, name: '150 kredit (langganan ringan)' },
+  { id: 'pack_5', credits: 5, price: 7_500, name: '5 kredit — coba dulu' },
+  { id: 'pack_25', credits: 25, price: 30_000, name: '25 kredit — Paket Mahasiswa' },
+  { id: 'pack_60', credits: 60, price: 60_000, name: '60 kredit — hemat' },
+  { id: 'pack_150', credits: 150, price: 120_000, name: '150 kredit — Pro/Organisasi' },
 ];
 
 /** Buat transaksi Xendit untuk paket terpilih; mengembalikan URL invoice untuk dibuka pengguna. */

@@ -11,6 +11,7 @@ export function useDeckData(): DeckData | null {
   const slides = project?.slides;
   const assets = project?.assets;
   const logoId = project?.logoId ?? null;
+  const watermark = project?.tier === 'free';
 
   const theme = useMemo(() => (themeConfig ? resolveTheme(themeConfig) : null), [themeConfig]);
 
@@ -26,8 +27,8 @@ export function useDeckData(): DeckData | null {
     };
     slides.forEach((s) => add(s.imageId));
     add(logoId);
-    return { slides, theme, images, anims, logoId: logoId && images[logoId] ? logoId : null };
-  }, [theme, slides, assets, logoId]);
+    return { slides, theme, images, anims, logoId: logoId && images[logoId] ? logoId : null, watermark };
+  }, [theme, slides, assets, logoId, watermark]);
 }
 
 /** Tier kualitas grafis: preferensi pengguna, atau deteksi otomatis perangkat. */

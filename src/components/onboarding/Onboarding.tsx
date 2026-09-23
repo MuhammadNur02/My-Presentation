@@ -1,19 +1,19 @@
-import { ArrowRight, FileUp, FolderOpen, Settings, Sparkles, Trash2, Wand2 } from 'lucide-react';
+import { ArrowRight, FilePlus2, FileUp, FolderOpen, Sparkles, Trash2, Wand2 } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ACCEPTED_TYPES, importFile } from '../../services/importers';
 import { describeLlmError, generateOutlineWithLLM, isInsufficientCreditsError, llmConfigured } from '../../services/ai/llm';
 import { generateMockOutline } from '../../services/ai/mockGenerator';
 import { outlineToSlides, type Outline } from '../../services/ai/outline';
 import { useTypewriter } from '../../hooks/useTypewriter';
-import { CLAUDE_PROXY_URL } from '../../services/supabase';
+import { CLAUDE_PROXY_URL, HOSTED_MODEL } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
 import type { Language, Tone } from '../../types';
 import { cn } from '../../utils/cn';
-import { AccountWidget } from '../common/AccountWidget';
-import { BrandName } from '../common/Brand';
+import { createSlide } from '../../utils/slideFactory';
 import { StageShell } from '../common/StageShell';
 import { Button, Field, IconButton, Segmented, Slider, inputClass } from '../common/ui';
 
@@ -33,8 +33,43 @@ const EXAMPLES = [
 
 const dateFmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
-export function Onboarding() {
-  const [mode, setMode] = useState<'prompt' | 'import'>('prompt');
+/** Kartu "lanjutkan proyek lokal" — dipakai di kedua entri (Generate AI / Alat Editor). */
+function ContinueProjectCard() {
+  const project = useProjectStore((s) => s.project);
+  const navigate = useNavigate();
+  if (!project) return null;
+  return (
+    <section className="mx-auto mt-6 w-full max-w-3xl">
+      <div className="glass flex flex-wrap items-center gap-3 rounded-2xl border border-line px-4 py-3">
+        <span className="grid size-10 place-items-center rounded-xl bg-accent-soft text-accent">
+          <FolderOpen className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">Lanjutkan: {project.name}</div>
+          <div className="text-xs text-muted">
+            {project.slides.length} slide · diubah {dateFmt.format(project.updatedAt)}
+          </div>
+        </div>
+        <Button variant="primary" size="sm" icon={<ArrowRight className="size-3.5" />} onClick={() => navigate('/dashboard/studio')}>
+          Buka studio
+        </Button>
+        <IconButton
+          label="Hapus proyek tersimpan"
+          onClick={() => window.confirm('Hapus proyek tersimpan dari perangkat ini?') && useProjectStore.getState().discardProject()}
+        >
+          <Trash2 className="size-4" />
+        </IconButton>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Dua entri pembuatan presentasi — dipasang di rute terpisah (`/dashboard/generate` &
+ * `/dashboard/editor`), bukan lagi tab dalam satu layar: `mode="prompt"` = AI Generate PPT
+ * (kredit/AI), `mode="import"` = Alat Editor mode gratis (impor dokumen / kanvas kosong).
+ */
+export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
   const [topic, setTopic] = useState('');
   const [tone, setTone] = useState<Tone>('professional');
   const [language, setLanguage] = useState<Language>('id');
@@ -43,11 +78,11 @@ export function Onboarding() {
   const [dragOver, setDragOver] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   // Placeholder "mesin ketik": contoh topik berganti-ganti sendiri; berhenti begitu pengguna mengisi kolom.
   const typedPlaceholder = useTypewriter(EXAMPLES, { active: topic.length === 0 });
 
-  const project = useProjectStore((s) => s.project);
   const settings = useSettingsStore();
   const session = useAuthStore((s) => s.session);
   const credits = useAuthStore((s) => s.credits);
@@ -55,6 +90,9 @@ export function Onboarding() {
   // Belum masuk → pakai kunci Anthropic pribadi dari Pengaturan bila diisi, atau mode simulasi.
   const usingHosted = !!session;
   const hasLlm = usingHosted || llmConfigured({ apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl });
+  // Kredit sudah diketahui (bukan null, artinya sudah selesai dimuat dari server) dan habis — blokir
+  // di sini SEBELUM mencoba memanggil AI, supaya pengguna tidak menunggu lalu baru tahu gagal.
+  const outOfCredits = usingHosted && credits !== null && credits <= 0;
   const toast = useUIStore.getState().toast;
 
   const generate = async () => {
@@ -62,12 +100,18 @@ export function Onboarding() {
       toast('Tuliskan topik presentasi terlebih dahulu.', 'error');
       return;
     }
+    if (outOfCredits) {
+      toast('Kredit Anda habis. Isi ulang untuk melanjutkan.', 'error');
+      useUIStore.getState().openModal('billing');
+      return;
+    }
     const ac = new AbortController();
     abortRef.current = ac;
     setBusy('ai');
     const req = { topic, tone, language, slideCount: count };
+    // Model hosted TETAP (bukan pilihan pengguna) demi kendali biaya API pemilik — lihat HOSTED_MODEL.
     const llmCfg = usingHosted
-      ? { apiKey: session.access_token, model: settings.anthropicModel, baseUrl: CLAUDE_PROXY_URL }
+      ? { apiKey: session.access_token, model: HOSTED_MODEL, baseUrl: CLAUDE_PROXY_URL }
       : { apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl };
     try {
       let outline: Outline;
@@ -89,6 +133,7 @@ export function Onboarding() {
       }
       useProjectStore.getState().createProject({ name: outline.title, tone, language, slides: outlineToSlides(outline) });
       useUIStore.getState().setStage('outline');
+      navigate('/dashboard/studio');
     } catch (err) {
       if (!(err instanceof DOMException && err.name === 'AbortError')) toast(err instanceof Error ? err.message : 'Gagal membuat struktur', 'error');
     } finally {
@@ -106,10 +151,13 @@ export function Onboarding() {
         useUIStore.getState().setStage('studio');
         toast(`Proyek "${result.project.name}" dimuat.`, 'success');
       } else {
-        useProjectStore.getState().createProject({ name: result.title, tone, language, slides: result.slides });
+        // Impor dokumen = mode gratis: tak memakai AI berbayar, tapi fitur AI/ekspor sumber dibatasi
+        // dan presentasinya memakai watermark — lihat `Project.tier`.
+        useProjectStore.getState().createProject({ name: result.title, tone, language, slides: result.slides, tier: 'free' });
         useUIStore.getState().setStage('outline');
-        toast(`${result.source}: ${result.slides.length} slide berhasil diimpor.`, 'success');
+        toast(`${result.source}: ${result.slides.length} slide berhasil diimpor. Mode gratis: fitur AI & ekspor sumber dibatasi.`, 'success');
       }
+      navigate('/dashboard/studio');
     } catch (err) {
       console.error(err);
       toast(err instanceof Error ? err.message : 'Gagal mengimpor dokumen', 'error');
@@ -118,45 +166,56 @@ export function Onboarding() {
     }
   };
 
+  const startBlank = () => {
+    // Kanvas kosong = bagian "Alat Editor (mode gratis)", sama seperti impor dokumen.
+    useProjectStore.getState().createProject({
+      name: 'Presentasi baru',
+      tone,
+      language,
+      slides: [createSlide({ layout: 'title', title: 'Judul presentasi', subtitle: 'Sub-judul' })],
+      tier: 'free',
+    });
+    useUIStore.getState().setStage('outline');
+    toast('Kanvas kosong dibuat — tambahkan slide dan isi sendiri.', 'success');
+    navigate('/dashboard/studio');
+  };
+
   return (
     <StageShell className="aurora overflow-y-auto">
-      <div className="mx-auto flex min-h-full max-w-5xl flex-col px-6 pb-16 pt-6">
-        <header className="flex items-center justify-between gap-2">
-          <BrandName />
-          <div className="flex items-center gap-2">
-            <AccountWidget />
-            <IconButton label="Pengaturan" onClick={() => useUIStore.getState().openModal('settings')}>
-              <Settings className="size-4" />
-            </IconButton>
-          </div>
-        </header>
-
-        <section className="mx-auto mt-14 max-w-3xl text-center">
+      <div className="mx-auto flex min-h-full max-w-5xl flex-col px-6 pb-16 pt-10">
+        <section className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-field px-3 py-1 text-xs font-medium text-muted">
-            <Sparkles className="size-3.5 text-accent" /> Presentasi berbasis AI · Transisi 3D/WebGL Morph
+            <Sparkles className="size-3.5 text-accent" />
+            {mode === 'prompt' ? 'Presentasi berbasis AI · Transisi 3D/WebGL Morph' : 'Alat Editor · Mode gratis'}
           </span>
-          <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
-            Presentasi sinematik,
-            <br />
-            <span className="bg-linear-to-r from-violet-500 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">dirancang oleh AI.</span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-pretty text-[15px] leading-relaxed text-muted">
-            Ceritakan topiknya atau impor dokumen. AI menyusun slide, gambar, dan transisi 3D yang halus — lalu Anda sempurnakan langsung di studio.
-          </p>
+          {mode === 'prompt' ? (
+            <>
+              <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
+                Presentasi sinematik,
+                <br />
+                <span className="bg-linear-to-r from-violet-500 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">dirancang oleh AI.</span>
+              </h1>
+              <p className="mx-auto mt-5 max-w-xl text-pretty text-[15px] leading-relaxed text-muted">
+                Ceritakan topiknya — AI menyusun slide, gambar, dan transisi 3D yang halus, lalu Anda sempurnakan langsung di studio.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
+                Sudah punya materi?
+                <br />
+                <span className="bg-linear-to-r from-violet-500 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">Impor, atau mulai kosong.</span>
+              </h1>
+              <p className="mx-auto mt-5 max-w-xl text-pretty text-[15px] leading-relaxed text-muted">
+                Impor PPTX/PDF/DOCX/TXT/MD yang sudah ada, atau mulai dari kanvas kosong — gratis, tanpa kredit. Diproses sepenuhnya di perangkat Anda.
+              </p>
+            </>
+          )}
         </section>
 
         <section className="glass mx-auto mt-10 w-full max-w-3xl rounded-[28px] border border-line p-5 shadow-[var(--shadow-pop)] sm:p-7">
-          <Segmented<'prompt' | 'import'>
-            value={mode}
-            onChange={setMode}
-            options={[
-              { id: 'prompt', label: 'Prompt AI' },
-              { id: 'import', label: 'Impor dokumen' },
-            ]}
-          />
-
           {mode === 'prompt' ? (
-            <div className="mt-5 space-y-5">
+            <div className="space-y-5">
               <Field label="Topik presentasi">
                 <textarea
                   className={cn(inputClass, 'min-h-28 resize-none text-[15px]')}
@@ -205,14 +264,20 @@ export function Onboarding() {
                 </button>
                 <div className="flex gap-2">
                   {busy === 'ai' && <Button onClick={() => abortRef.current?.abort()}>Batal</Button>}
-                  <Button variant="primary" size="lg" loading={busy === 'ai'} icon={<Wand2 className="size-4" />} onClick={() => void generate()}>
-                    Buat struktur slide
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    loading={busy === 'ai'}
+                    icon={<Wand2 className="size-4" />}
+                    onClick={() => (outOfCredits ? useUIStore.getState().openModal('billing') : void generate())}
+                  >
+                    {outOfCredits ? 'Kredit habis — isi ulang' : 'Buat struktur slide'}
                   </Button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="mt-5">
+            <div className="space-y-4">
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -252,34 +317,17 @@ export function Onboarding() {
                   }}
                 />
               </div>
+              <div className="flex items-center gap-3 text-xs text-muted">
+                <span className="h-px flex-1 bg-line" /> atau <span className="h-px flex-1 bg-line" />
+              </div>
+              <Button variant="secondary" className="w-full" icon={<FilePlus2 className="size-4" />} onClick={startBlank}>
+                Mulai dari kanvas kosong
+              </Button>
             </div>
           )}
         </section>
 
-        {project && (
-          <section className="mx-auto mt-6 w-full max-w-3xl">
-            <div className="glass flex flex-wrap items-center gap-3 rounded-2xl border border-line px-4 py-3">
-              <span className="grid size-10 place-items-center rounded-xl bg-accent-soft text-accent">
-                <FolderOpen className="size-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">Lanjutkan: {project.name}</div>
-                <div className="text-xs text-muted">
-                  {project.slides.length} slide · diubah {dateFmt.format(project.updatedAt)}
-                </div>
-              </div>
-              <Button variant="primary" size="sm" icon={<ArrowRight className="size-3.5" />} onClick={() => useUIStore.getState().setStage('studio')}>
-                Buka studio
-              </Button>
-              <IconButton
-                label="Hapus proyek tersimpan"
-                onClick={() => window.confirm('Hapus proyek tersimpan dari perangkat ini?') && useProjectStore.getState().discardProject()}
-              >
-                <Trash2 className="size-4" />
-              </IconButton>
-            </div>
-          </section>
-        )}
+        <ContinueProjectCard />
       </div>
     </StageShell>
   );

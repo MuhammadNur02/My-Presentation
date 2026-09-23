@@ -26,6 +26,7 @@ export function collectDeckData(project: Project): DeckData {
     images,
     anims,
     logoId: project.logoId && images[project.logoId] ? project.logoId : null,
+    watermark: project.tier === 'free',
   };
 }
 

@@ -171,6 +171,13 @@ export function PresentationMode() {
 
       {notesOpen && <NotesPanel slide={slides[index]} next={slides[index + 1]} />}
 
+      {/* Mode gratis (proyek hasil impor dokumen): lencana watermark kecil, selalu terlihat. */}
+      {deck?.watermark && (
+        <div className="pointer-events-none absolute bottom-4 right-4 z-20 flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-900/70 px-3 py-1.5 text-[11px] text-white/80 backdrop-blur-md">
+          Dibuat dengan <b className="font-semibold text-white">MorphDeck</b>
+        </div>
+      )}
+
       <div
         data-no-nav
         className={cn(

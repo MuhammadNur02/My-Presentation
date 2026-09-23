@@ -14,21 +14,22 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 Deno.serve(async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  const cors = corsHeaders(req);
+  if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405, cors);
 
   const authHeader = req.headers.get('authorization') ?? '';
   const accessToken = authHeader.replace(/^Bearer\s+/i, '');
-  if (!accessToken) return json({ error: 'Masuk dengan akun Google diperlukan.' }, 401);
+  if (!accessToken) return json({ error: 'Masuk dengan akun Google diperlukan.' }, 401, cors);
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: userData, error: userErr } = await supabase.auth.getUser(accessToken);
-  if (userErr || !userData.user) return json({ error: 'Sesi masuk tidak valid — silakan masuk ulang.' }, 401);
+  if (userErr || !userData.user) return json({ error: 'Sesi masuk tidak valid — silakan masuk ulang.' }, 401, cors);
 
   const body = await req.json().catch(() => ({}) as Record<string, unknown>);
   const packageId = String(body.packageId ?? '');
   const pkg = CREDIT_PACKAGES[packageId];
-  if (!pkg) return json({ error: 'Paket tidak dikenal.' }, 400);
+  if (!pkg) return json({ error: 'Paket tidak dikenal.' }, 400, cors);
 
   // external_id menyisipkan uid + kode paket + waktu — dibaca kembali oleh webhook, TANPA perlu tabel
   // transaksi terpisah untuk memetakan pembayaran ke akun mana.
@@ -52,8 +53,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   });
   if (!res.ok) {
     const detail = await res.text();
-    return json({ error: `Xendit gagal membuat invoice (${res.status}): ${detail}` }, 502);
+    return json({ error: `Xendit gagal membuat invoice (${res.status}): ${detail}` }, 502, cors);
   }
   const invoice = (await res.json()) as { invoice_url: string };
-  return json({ invoiceUrl: invoice.invoice_url }, 200);
+  return json({ invoiceUrl: invoice.invoice_url }, 200, cors);
 });

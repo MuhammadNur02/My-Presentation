@@ -28,6 +28,8 @@ interface CreateInput {
   language: Language;
   slides: Slide[];
   theme?: ThemeConfig;
+  /** 'free' = dibuat lewat impor dokumen (tanpa AI berbayar) — lihat catatan di `Project.tier`. */
+  tier?: 'free' | 'full';
 }
 
 interface ProjectState {
@@ -134,7 +136,7 @@ export const useProjectStore = create<ProjectState>()(
           }),
         ),
 
-      createProject: ({ name, tone, language, slides, theme }) => {
+      createProject: ({ name, tone, language, slides, theme, tier }) => {
         const project: Project = {
           id: uid('p'),
           name,
@@ -147,6 +149,7 @@ export const useProjectStore = create<ProjectState>()(
           logoId: null,
           theme: theme ?? DEFAULT_THEME,
           motionStyle: styleForTone(tone),
+          tier: tier ?? 'full',
         };
         set({ project, history: [], past: [], future: [] });
         useUIStore.getState().selectSlide(slides[0]?.id ?? null);

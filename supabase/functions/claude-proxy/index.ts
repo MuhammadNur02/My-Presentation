@@ -27,21 +27,22 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const CREDIT_COST_PER_CALL = 1;
 
 Deno.serve(async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  const cors = corsHeaders(req);
+  if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
   if (req.method !== 'POST') {
-    return json({ type: 'error', error: { type: 'invalid_request_error', message: 'Method not allowed' } }, 405);
+    return json({ type: 'error', error: { type: 'invalid_request_error', message: 'Method not allowed' } }, 405, cors);
   }
 
   // 1) "x-api-key" di sini adalah ACCESS TOKEN SUPABASE pengguna, bukan kunci Anthropic — lihat komentar atas.
   const accessToken = req.headers.get('x-api-key') ?? '';
   if (!accessToken) {
-    return json({ type: 'error', error: { type: 'authentication_error', message: 'Masuk dengan akun Google diperlukan.' } }, 401);
+    return json({ type: 'error', error: { type: 'authentication_error', message: 'Masuk dengan akun Google diperlukan.' } }, 401, cors);
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: userData, error: userErr } = await supabase.auth.getUser(accessToken);
   if (userErr || !userData.user) {
-    return json({ type: 'error', error: { type: 'authentication_error', message: 'Sesi masuk tidak valid — silakan masuk ulang.' } }, 401);
+    return json({ type: 'error', error: { type: 'authentication_error', message: 'Sesi masuk tidak valid — silakan masuk ulang.' } }, 401, cors);
   }
   const uid = userData.user.id;
 
@@ -50,9 +51,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const { error: spendErr } = await supabase.rpc('spend_credits', { p_uid: uid, p_amount: CREDIT_COST_PER_CALL });
   if (spendErr) {
     if (spendErr.message.includes('INSUFFICIENT_CREDITS')) {
-      return json({ type: 'error', error: { type: 'insufficient_credits', message: 'Kredit Anda habis. Isi ulang untuk melanjutkan.' } }, 402);
+      return json({ type: 'error', error: { type: 'insufficient_credits', message: 'Kredit Anda habis. Isi ulang untuk melanjutkan.' } }, 402, cors);
     }
-    return json({ type: 'error', error: { type: 'internal_error', message: spendErr.message } }, 500);
+    return json({ type: 'error', error: { type: 'internal_error', message: spendErr.message } }, 500, cors);
   }
 
   // 3) Teruskan body APA ADANYA ke Anthropic dengan kunci ASLI (server-only secret).
@@ -64,18 +65,32 @@ Deno.serve(async (req: Request): Promise<Response> => {
       body,
     });
     const text = await upstream.text();
+    if (upstream.status >= 400) {
+      // Anthropic menolak permintaan (mis. saldo API akun ini habis, topik ditolak, dll.) — kembalikan
+      // kredit yang sudah dipotong di langkah 2 supaya pengguna tidak membayar untuk permintaan gagal.
+      const { error: refundErr } = await supabase.rpc('add_credits', {
+        p_uid: uid,
+        p_amount: CREDIT_COST_PER_CALL,
+        p_note: `Pengembalian otomatis — Anthropic mengembalikan galat ${upstream.status}`,
+      });
+      if (refundErr) console.error('Gagal mengembalikan kredit setelah galat upstream:', refundErr.message);
+    }
     return new Response(text, {
       status: upstream.status,
-      headers: { ...corsHeaders, 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
+      headers: { ...cors, 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
     });
-    // Catatan: kredit yang sudah dipotong di langkah 2 TIDAK dikembalikan otomatis bila Anthropic
-    // mengembalikan galat (mis. topik ditolak) — trade-off kesederhanaan MVP. Kalau refund-per-galat
-    // penting, panggil `supabase.rpc('add_credits', { p_uid: uid, p_amount: CREDIT_COST_PER_CALL, p_note: 'refund' })`
-    // saat `upstream.status >= 400`.
   } catch (err) {
+    // Anthropic sama sekali tidak terhubungi (bukan sekadar menolak) — kembalikan kredit juga.
+    const { error: refundErr } = await supabase.rpc('add_credits', {
+      p_uid: uid,
+      p_amount: CREDIT_COST_PER_CALL,
+      p_note: 'Pengembalian otomatis — tidak dapat menghubungi Anthropic',
+    });
+    if (refundErr) console.error('Gagal mengembalikan kredit setelah galat jaringan:', refundErr.message);
     return json(
       { type: 'error', error: { type: 'api_error', message: `Tidak dapat menghubungi Anthropic: ${err instanceof Error ? err.message : 'galat jaringan'}` } },
       502,
+      cors,
     );
   }
 });

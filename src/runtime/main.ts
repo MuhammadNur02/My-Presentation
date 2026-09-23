@@ -55,7 +55,8 @@ function boot(): void {
       <div id="notes-body"></div>
       <div id="notes-next"></div>
     </aside>
-    <div id="toast" data-no-nav></div>`;
+    <div id="toast" data-no-nav></div>
+    ${deck.watermark ? '<div id="watermark" data-no-nav>Dibuat dengan <b>MorphDeck</b></div>' : ''}`;
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const stage = $('stage');

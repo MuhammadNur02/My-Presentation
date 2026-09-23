@@ -1,5 +1,6 @@
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../../store/projectStore';
 import { useUIStore } from '../../store/uiStore';
 import { BrandName } from '../common/Brand';
@@ -17,6 +18,7 @@ export function OutlineStage() {
   const project = useProjectStore((s) => s.project);
   const setName = useProjectStore((s) => s.setName);
   const selectedId = useUIStore((s) => s.selectedSlideId);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (project?.slides.length && !project.slides.some((s) => s.id === selectedId)) {
@@ -35,7 +37,7 @@ export function OutlineStage() {
   return (
     <StageShell className="flex flex-col">
       <header className="glass flex h-14 shrink-0 items-center gap-3 border-b border-line px-4">
-        <IconButton label="Kembali" onClick={() => useUIStore.getState().setStage('onboarding')}>
+        <IconButton label="Kembali" onClick={() => navigate(-1)}>
           <ArrowLeft className="size-4" />
         </IconButton>
         <BrandName />

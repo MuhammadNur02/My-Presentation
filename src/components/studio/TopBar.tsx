@@ -1,4 +1,8 @@
-import { CheckCircle2, Clock, FilePlus2, Loader2, Moon, Play, Redo2, Settings, Sun, TriangleAlert, Undo2, Wand2 } from 'lucide-react';
+import { CheckCircle2, Clock, CloudUpload, FilePlus2, Loader2, Moon, Play, Redo2, Settings, Sun, TriangleAlert, Undo2, Wand2 } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { pushProjectToCloud } from '../../services/cloudProjects';
+import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
@@ -31,6 +35,33 @@ function SaveIndicator() {
   );
 }
 
+/** Salin proyek aktif ke cloud (Supabase) — hanya terlihat untuk pengguna yang sudah masuk Google. */
+function CloudSaveButton() {
+  const user = useAuthStore((s) => s.user);
+  const [busy, setBusy] = useState(false);
+  if (!user) return null;
+
+  const save = async () => {
+    const project = useProjectStore.getState().project;
+    if (!project) return;
+    setBusy(true);
+    try {
+      await pushProjectToCloud(project);
+      useUIStore.getState().toast('Proyek disalin ke cloud — bisa dibuka lagi dari perangkat lain di "Hasil Proyek".', 'success');
+    } catch (err) {
+      useUIStore.getState().toast(err instanceof Error ? err.message : 'Gagal menyimpan ke cloud', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <IconButton label="Simpan ke cloud" onClick={() => void save()} disabled={busy}>
+      {busy ? <Loader2 className="size-4 animate-spin" /> : <CloudUpload className="size-4" />}
+    </IconButton>
+  );
+}
+
 export function TopBar() {
   const name = useProjectStore((s) => s.project?.name ?? '');
   const setName = useProjectStore((s) => s.setName);
@@ -39,11 +70,12 @@ export function TopBar() {
   const canUndo = useProjectStore((s) => s.past.length > 0);
   const canRedo = useProjectStore((s) => s.future.length > 0);
   const dark = uiTheme === 'dark' || (uiTheme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const navigate = useNavigate();
 
   const newProject = () => {
     if (!window.confirm('Mulai proyek baru? Proyek saat ini akan dihapus dari perangkat ini. Unduh cadangan terlebih dahulu bila perlu.')) return;
     useProjectStore.getState().discardProject();
-    useUIStore.getState().setStage('onboarding');
+    navigate('/dashboard/projects');
   };
 
   return (
@@ -88,6 +120,7 @@ export function TopBar() {
           </IconButton>
         </span>
         <span className="mx-1 h-5 w-px bg-line max-md:hidden" />
+        <CloudSaveButton />
         <AccountWidget className="max-md:hidden" />
         <span className="mx-1 h-5 w-px bg-line max-md:hidden" />
         <ExportMenu />

@@ -1,0 +1,7 @@
+{
+  "//": "Proyek ini campuran: aplikasi React/Vite (Node) di root + Supabase Edge Functions (Deno) di supabase/functions. Baris di bawah membatasi bahasa-server Deno HANYA ke folder itu, supaya TypeScript checker biasa tetap dipakai untuk sisa aplikasi.",
+  "deno.enable": false,
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.config": "supabase/functions/deno.json",
+  "deno.lint": true
+}

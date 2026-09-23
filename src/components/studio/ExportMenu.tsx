@@ -18,6 +18,10 @@ export function ExportMenu() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<Kind | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  // Mode gratis (proyek hasil impor dokumen): sumber yang bisa diedit ulang (.json) tidak diunduh —
+  // hasil akhir (ZIP/HTML, keduanya sudah memakai watermark) tetap boleh.
+  const isFreeTier = useProjectStore((s) => s.project?.tier === 'free');
+  const items = isFreeTier ? ITEMS.filter((it) => it.id !== 'json') : ITEMS;
 
   useEffect(() => {
     if (!open) return;
@@ -71,7 +75,7 @@ export function ExportMenu() {
       </Button>
       {open && (
         <div className="pop-in absolute right-0 top-full z-40 mt-2 w-80 overflow-hidden rounded-2xl border border-line bg-solid p-1.5 shadow-[var(--shadow-pop)]">
-          {ITEMS.map((it) => (
+          {items.map((it) => (
             <button
               key={it.id}
               disabled={busy !== null}
@@ -87,6 +91,11 @@ export function ExportMenu() {
               </span>
             </button>
           ))}
+          {isFreeTier && (
+            <p className="px-3 pb-1.5 pt-1 text-[10.5px] leading-relaxed text-muted">
+              Mode gratis: berkas proyek (.json) tidak tersedia & hasil unduhan memakai watermark. Buat presentasi baru dari prompt AI untuk ekspor penuh.
+            </p>
+          )}
         </div>
       )}
     </div>
