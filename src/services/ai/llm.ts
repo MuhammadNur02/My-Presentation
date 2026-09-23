@@ -19,6 +19,12 @@ const TONE_GUIDE: Record<OutlineRequest['tone'], string> = {
   educational: 'edukatif: bertahap, jelas, memakai contoh dan tujuan pembelajaran',
 };
 
+const CREATOR_GUIDE: Record<OutlineRequest['creator'], string> = {
+  mahasiswa: 'mahasiswa untuk tugas kuliah/seminar akademik — boleh menyinggung teori/konsep & referensi ilmiah bila relevan, struktur argumentasi jelas',
+  siswa: 'siswa sekolah untuk tugas kelas — bahasa sederhana dan mudah dipahami, hindari istilah terlalu teknis, contoh yang dekat dengan keseharian',
+  karyawan: 'karyawan/pekerja kantoran untuk keperluan bisnis atau rapat — fokus pada hasil, data, dan rekomendasi yang bisa langsung ditindaklanjuti',
+};
+
 const SYSTEM_PROMPT = `Anda adalah desainer presentasi senior. Tugas: susun struktur presentasi lengkap sebagai JSON murni.
 
 Aturan konten:
@@ -169,6 +175,7 @@ ${req.topic.trim()}
 
 Bahasa keluaran: ${langName}
 Gaya (tone): ${TONE_GUIDE[req.tone]}
+Dibuat oleh: ${CREATOR_GUIDE[req.creator]}
 Jumlah slide: tepat ${req.slideCount}
 
 Keluarkan JSON dengan bentuk {"title": string, "slides": [{"layout","title","subtitle","bullets","notes","image_query"}]}.`;

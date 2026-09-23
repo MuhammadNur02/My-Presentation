@@ -10,7 +10,7 @@ import { CLAUDE_PROXY_URL, HOSTED_MODEL } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
 import { useUIStore } from '../../store/uiStore';
-import type { Language, Tone } from '../../types';
+import type { Creator, Language, Tone } from '../../types';
 import { cn } from '../../utils/cn';
 import { createSlide } from '../../utils/slideFactory';
 import { StageShell } from '../common/StageShell';
@@ -21,6 +21,12 @@ const TONES: { id: Tone; label: string }[] = [
   { id: 'creative', label: 'Kreatif' },
   { id: 'minimal', label: 'Minimalis' },
   { id: 'educational', label: 'Edukatif' },
+];
+
+const CREATORS: { id: Creator; label: string }[] = [
+  { id: 'mahasiswa', label: 'Mahasiswa' },
+  { id: 'siswa', label: 'Siswa' },
+  { id: 'karyawan', label: 'Pekerja kantoran' },
 ];
 
 const EXAMPLES = [
@@ -71,6 +77,7 @@ function ContinueProjectCard() {
 export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
   const [topic, setTopic] = useState('');
   const [tone, setTone] = useState<Tone>('professional');
+  const [creator, setCreator] = useState<Creator>('mahasiswa');
   const [language, setLanguage] = useState<Language>('id');
   const [count, setCount] = useState(10);
   const [busy, setBusy] = useState<'ai' | 'import' | null>(null);
@@ -106,7 +113,7 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
     const ac = new AbortController();
     abortRef.current = ac;
     setBusy('ai');
-    const req = { topic, tone, language, slideCount: count };
+    const req = { topic, tone, creator, language, slideCount: count };
     try {
       let outline: Outline;
       if (hasLlm && session) {
@@ -232,10 +239,13 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
                 ))}
               </div>
               <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Dibuat oleh">
+                  <Segmented<Creator> value={creator} onChange={setCreator} options={CREATORS} className="[&_button]:px-1 [&_button]:text-[12px]" />
+                </Field>
                 <Field label="Gaya visual & nada">
                   <Segmented<Tone> value={tone} onChange={setTone} options={TONES} className="[&_button]:px-1 [&_button]:text-[12px]" />
                 </Field>
-                <Field label="Bahasa">
+                <Field label="Bahasa" className="sm:col-span-2">
                   <Segmented<Language>
                     value={language}
                     onChange={setLanguage}

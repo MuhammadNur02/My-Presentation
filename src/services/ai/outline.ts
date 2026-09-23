@@ -1,4 +1,4 @@
-import type { Language, LayoutId, Slide, Tone } from '../../types';
+import type { Creator, Language, LayoutId, Slide, Tone } from '../../types';
 import { createSlide } from '../../utils/slideFactory';
 
 export interface OutlineRequest {
@@ -6,6 +6,8 @@ export interface OutlineRequest {
   tone: Tone;
   slideCount: number;
   language: Language;
+  /** Siapa yang membuat presentasi ini — konteks tambahan untuk AI, terpisah dari gaya (tone). */
+  creator: Creator;
 }
 
 export interface OutlineSlide {

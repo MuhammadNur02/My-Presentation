@@ -192,6 +192,8 @@ export interface Asset {
 }
 
 export type Tone = 'professional' | 'creative' | 'minimal' | 'educational';
+/** Siapa yang membuat presentasi ini — membantu AI menyesuaikan gaya bahasa & kedalaman konten. */
+export type Creator = 'mahasiswa' | 'siswa' | 'karyawan';
 export type Language = 'id' | 'en';
 export type FontStyle = 'sans' | 'serif' | 'mono' | 'grotesk' | 'elegant' | 'rounded' | 'condensed';
 export type PatternId = 'none' | 'dots' | 'grid' | 'diagonal' | 'arcs' | 'waves';
