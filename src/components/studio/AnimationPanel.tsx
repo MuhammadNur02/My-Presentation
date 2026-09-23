@@ -1,8 +1,9 @@
-import { Film, Sparkles, Trash2, Upload, Wand2 } from 'lucide-react';
+import { Film, Search, Sparkles, Trash2, Upload, Wand2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SCENES, SCENE_H, SCENE_W, drawScene, suggestScenes } from '../../engine';
 import { useAssets } from '../../hooks/useAssets';
 import { describeLlmError, isInsufficientCreditsError, suggestSceneWithLLM } from '../../services/ai/llm';
+import { searchGifs, type GifCandidate } from '../../services/media/giphy';
 import { MAX_GIF_BYTES, MAX_VIDEO_BYTES } from '../../services/media/assets';
 import { CLAUDE_PROXY_URL, HOSTED_MODEL } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
@@ -10,7 +11,7 @@ import { useProjectStore } from '../../store/projectStore';
 import { useUIStore } from '../../store/uiStore';
 import type { Asset, Language, Slide } from '../../types';
 import { cn } from '../../utils/cn';
-import { Button, SectionTitle } from '../common/ui';
+import { Button, SectionTitle, inputClass } from '../common/ui';
 
 /* ---- pratinjau mini animasi generatif: satu loop rAF bersama untuk semua kartu ---- */
 interface Preview {
@@ -51,7 +52,8 @@ const animKindLabel = (a: Asset): string => (a.anim?.kind === 'gif' ? 'GIF' : a.
 /**
  * Animasi & media bergerak untuk menjelaskan isi slide (mis. slide tentang sel darah → animasi sel darah mengalir):
  *  1) Animasi generatif bawaan — dipilih otomatis dari isi slide, atau dipilih AI (pengguna hosted/berkredit);
- *  2) Unggah GIF / MP4 / WebM sendiri.
+ *  2) Cari GIF (proxy hosted `search-giphy`, gratis untuk yang sudah masuk — lihat berkas itu);
+ *  3) Unggah GIF / MP4 / WebM sendiri.
  */
 export function AnimationPanel({ slide }: { slide: Slide }) {
   const project = useProjectStore((s) => s.project)!;
@@ -61,10 +63,14 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
   const outOfCredits = usingHosted && credits !== null && credits <= 0;
   // Proyek hasil impor dokumen (mode gratis) tidak memakai fitur AI berbayar sama sekali.
   const isFreeTier = project.tier === 'free';
-  const { busy, uploadMotion, applyScene, applyMotion } = useAssets();
+  const { busy, uploadMotion, applyScene, applyGif, applyMotion } = useAssets();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  const [query, setQuery] = useState('');
+  const [gifs, setGifs] = useState<GifCandidate[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [gifNote, setGifNote] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiNote, setAiNote] = useState('');
 
@@ -107,6 +113,22 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
       setAiNote(describeLlmError(err));
     } finally {
       setAiBusy(false);
+    }
+  };
+
+  const searchGif = async () => {
+    if (!session) return;
+    setSearching(true);
+    setGifNote('');
+    try {
+      const list = await searchGifs(query, 12, lang);
+      setGifs(list);
+      if (!list.length) setGifNote('Tidak ada GIF yang cocok. Coba kata kunci lain (bahasa Inggris biasanya lebih banyak hasil).');
+    } catch (err) {
+      setGifs([]);
+      setGifNote(err instanceof Error ? err.message : 'Pencarian GIF gagal');
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -162,6 +184,51 @@ export function AnimationPanel({ slide }: { slide: Slide }) {
             );
           })}
         </div>
+      </section>
+
+      <section>
+        <SectionTitle>Cari GIF</SectionTitle>
+        {!session ? (
+          <div className="rounded-xl bg-field p-3 text-[12px] leading-relaxed text-muted">
+            Pencarian GIF gratis untuk yang sudah masuk (tanpa memotong kredit).{' '}
+            <button className="font-medium text-accent hover:underline" onClick={() => void useAuthStore.getState().signInWithGoogle()}>
+              Masuk dengan Google
+            </button>
+            . Sementara itu, Anda tetap bisa mengunggah GIF sendiri atau memakai animasi generatif di atas.
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-2">
+              <input
+                className={inputClass}
+                value={query}
+                placeholder="mis. blood cells, heartbeat, dna…"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void searchGif()}
+              />
+              <Button loading={searching} onClick={() => void searchGif()} icon={<Search className="size-4" />}>
+                Cari
+              </Button>
+            </div>
+            {gifNote && <p className="mt-2 text-[11px] text-muted">{gifNote}</p>}
+            {gifs.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {gifs.map((g) => (
+                  <button
+                    key={g.id}
+                    disabled={busy}
+                    onClick={() => void applyGif(slide.id, g)}
+                    title={g.title}
+                    className="aspect-video overflow-hidden rounded-lg bg-field ring-1 ring-line transition hover:ring-2 hover:ring-accent disabled:opacity-60"
+                  >
+                    <img src={g.thumb} alt={g.title} className="size-full object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-[10.5px] uppercase tracking-wider text-muted">Powered by GIPHY</p>
+          </>
+        )}
       </section>
 
       <section>

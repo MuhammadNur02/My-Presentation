@@ -1,9 +1,12 @@
+import { functionErrorMessage } from '../functionError';
+import { supabase } from '../supabase';
 import type { Asset } from '../../types';
 import { gifToAsset } from './assets';
 
 /**
- * Pencarian GIF lewat API GIPHY (mendukung CORS, jadi bisa dipanggil langsung dari browser). Butuh API key
- * (gratis di developers.giphy.com) yang diisi di Pengaturan. GIF diunduh lalu disimpan di proyek (offline & ikut ekspor).
+ * Pencarian GIF lewat proxy hosted `search-giphy` (kunci GIPHY milik aplikasi — gratis untuk
+ * pengguna yang sudah masuk Google, tanpa memotong kredit). GIF diunduh lalu disimpan di proyek
+ * (offline & ikut ekspor).
  */
 export interface GifCandidate {
   id: string;
@@ -20,17 +23,13 @@ interface GiphyItem {
   images: Record<string, { url?: string; width?: string; height?: string } | undefined>;
 }
 
-export async function searchGifs(query: string, apiKey: string, limit = 12, lang = 'id'): Promise<GifCandidate[]> {
-  const q = query.trim();
-  const base = q ? 'https://api.giphy.com/v1/gifs/search' : 'https://api.giphy.com/v1/gifs/trending';
-  const params = new URLSearchParams({ api_key: apiKey.trim(), limit: String(limit), rating: 'g', lang });
-  if (q) params.set('q', q);
-  const res = await fetch(`${base}?${params}`);
-  if (res.status === 401 || res.status === 403) throw new Error('API key GIPHY tidak valid atau ditolak. Periksa di Pengaturan.');
-  if (res.status === 429) throw new Error('Batas permintaan GIPHY tercapai. Coba lagi beberapa saat.');
-  if (!res.ok) throw new Error(`GIPHY mengembalikan galat ${res.status}`);
-  const json = (await res.json()) as { data: GiphyItem[] };
-  return json.data
+export async function searchGifs(query: string, limit = 12, lang = 'id'): Promise<GifCandidate[]> {
+  const { data, error } = await supabase.functions.invoke<{ data?: GiphyItem[]; error?: string }>('search-giphy', {
+    body: { query: query.trim(), limit, lang },
+  });
+  if (error) throw new Error(await functionErrorMessage(error, 'Pencarian GIF gagal'));
+  const items = data?.data ?? [];
+  return items
     .map((g) => {
       const thumb = g.images.fixed_width_small?.url ?? g.images.fixed_width?.url ?? g.images.downsized?.url;
       // `downsized` dijamin ≤ ~2 MB; `fixed_height` sebagai cadangan.

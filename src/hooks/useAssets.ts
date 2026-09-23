@@ -123,7 +123,7 @@ export function useAssets() {
     }
   }, []);
 
-  /** Buat/ganti gambar kontekstual untuk slide (seni generatif — fitur foto stok pribadi sudah dihapus). */
+  /** Buat/ganti gambar kontekstual untuk slide (foto Unsplash hosted bila masuk, selain itu seni generatif). */
   const generateForSlide = useCallback(async (slideId: string) => {
     const store = useProjectStore.getState();
     const project = store.project;
@@ -133,7 +133,6 @@ export function useAssets() {
       setBusy(true);
       const query = slide.imageQuery.trim() || imageQueryFor(slide.title, slide.subtitle);
       const asset = await contextImageAsset(query, {
-        unsplashKey: '',
         theme: resolveTheme(project.theme),
         variant: Math.floor(Math.random() * 10_000),
       });

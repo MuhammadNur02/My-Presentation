@@ -35,10 +35,9 @@ export function AssetPanel({ slide }: { slide: Slide }) {
     setSearching(true);
     setNote('');
     try {
-      // Tanpa kunci Unsplash (fitur foto stok pribadi sudah dihapus) — selalu ilustrasi generatif.
-      const { candidates, note: n } = await searchImages(q, { unsplashKey: '', theme, count: 6 });
+      const { candidates, note: n } = await searchImages(q, { theme, count: 6 });
       setResults(candidates);
-      setNote(n ?? 'Ilustrasi generatif — beberapa variasi baru dibuat dari kata kunci ini.');
+      setNote(n ?? '');
     } finally {
       setSearching(false);
     }

@@ -133,11 +133,10 @@ export interface GenerationResult {
 export async function runGeneration(opts: {
   project: Project;
   theme: ResolvedTheme;
-  unsplashKey: string;
   onProgress: (step: number, fraction: number) => void;
   signal?: AbortSignal;
 }): Promise<GenerationResult> {
-  const { project, theme, unsplashKey, onProgress, signal } = opts;
+  const { project, theme, onProgress, signal } = opts;
   const { tone } = project;
   const style: MotionStyle = project.motionStyle ?? styleForTone(tone);
   const check = () => {
@@ -193,7 +192,7 @@ export async function runGeneration(opts: {
     const sceneId = autoScene.get(i);
     const asset = sceneId
       ? sceneAsset(sceneId, project.language)
-      : await contextImageAsset(query, { unsplashKey, theme, variant: i });
+      : await contextImageAsset(query, { theme, variant: i });
     assets.push(asset);
     slides[i] = { ...s, imageId: asset.id, imageQuery: query };
     onProgress(2, ++done / Math.max(1, total));

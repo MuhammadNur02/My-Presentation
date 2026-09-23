@@ -2,11 +2,14 @@ import { generateArtDataUrl } from '../../engine/generativeArt';
 import type { Asset, ResolvedTheme } from '../../types';
 import { uid } from '../../utils/id';
 import { blobToDataUrl, measureImage } from '../../utils/image';
+import { functionErrorMessage } from '../functionError';
+import { supabase } from '../supabase';
 
 /**
  * Sumber gambar kontekstual.
- *  - Dengan kunci Unsplash: foto stok bebas hak cipta (API resmi, mendukung CORS).
- *  - Tanpa kunci / gagal: seni generatif offline deterministik dari kata kunci (selalu tersedia).
+ *  - Masuk dengan Google: foto stok Unsplash asli lewat proxy hosted `search-unsplash` (kunci milik
+ *    aplikasi, gratis untuk pengguna — tanpa memotong kredit, karena Unsplash sendiri gratis dipakai).
+ *  - Belum masuk / gagal: seni generatif offline deterministik dari kata kunci (selalu tersedia).
  * Titik ekstensi untuk generator gambar AI (DALL-E / Stable Diffusion): tambahkan provider
  * baru yang mengembalikan `Asset` dengan `source: 'stock'`.
  */
@@ -28,12 +31,13 @@ interface UnsplashPhoto {
   alt_description?: string | null;
 }
 
-async function searchUnsplash(query: string, key: string, count: number): Promise<ImageCandidate[]> {
-  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${count}&orientation=landscape&content_filter=high`;
-  const res = await fetch(url, { headers: { Authorization: `Client-ID ${key.trim()}` } });
-  if (!res.ok) throw new Error(`Unsplash ${res.status}`);
-  const json = (await res.json()) as { results: UnsplashPhoto[] };
-  return json.results.map((p) => ({
+async function searchUnsplashHosted(query: string, count: number): Promise<ImageCandidate[]> {
+  const { data, error } = await supabase.functions.invoke<{ results?: UnsplashPhoto[]; error?: string }>('search-unsplash', {
+    body: { query, count },
+  });
+  if (error) throw new Error(await functionErrorMessage(error, 'Gagal mencari foto'));
+  const results = data?.results ?? [];
+  return results.map((p) => ({
     id: p.id,
     thumb: p.urls.small,
     full: `${p.urls.raw}&w=1920&q=80&fm=jpg&fit=max`,
@@ -59,20 +63,16 @@ function artCandidates(query: string, theme: Pick<ResolvedTheme, 'mode'>, count:
 
 export async function searchImages(
   query: string,
-  opts: { unsplashKey: string; theme: Pick<ResolvedTheme, 'mode'>; count?: number },
+  opts: { theme: Pick<ResolvedTheme, 'mode'>; count?: number },
 ): Promise<{ candidates: ImageCandidate[]; note?: string }> {
   const count = opts.count ?? 6;
   const q = query.trim() || 'abstract';
-  if (opts.unsplashKey.trim()) {
-    try {
-      const found = await searchUnsplash(q, opts.unsplashKey, count);
-      if (found.length) return { candidates: found };
-    } catch (err) {
-      return {
-        candidates: artCandidates(q, opts.theme, count),
-        note: `Unsplash gagal (${err instanceof Error ? err.message : 'galat'}); memakai ilustrasi generatif.`,
-      };
-    }
+  try {
+    const found = await searchUnsplashHosted(q, count);
+    if (found.length) return { candidates: found };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'galat tidak diketahui';
+    return { candidates: artCandidates(q, opts.theme, count), note: `${msg} Memakai ilustrasi generatif untuk saat ini.` };
   }
   return { candidates: artCandidates(q, opts.theme, count) };
 }
@@ -100,15 +100,13 @@ export async function candidateToAsset(c: ImageCandidate, theme: Pick<ResolvedTh
 /** Gambar kontekstual otomatis untuk satu slide (dipakai tahap Generate). */
 export async function contextImageAsset(
   query: string,
-  opts: { unsplashKey: string; theme: Pick<ResolvedTheme, 'mode'>; variant: number },
+  opts: { theme: Pick<ResolvedTheme, 'mode'>; variant: number },
 ): Promise<Asset> {
-  if (opts.unsplashKey.trim()) {
-    try {
-      const [first] = await searchUnsplash(query, opts.unsplashKey, 3);
-      if (first) return await candidateToAsset(first, opts.theme, query);
-    } catch {
-      /* jatuh ke seni generatif */
-    }
+  try {
+    const [first] = await searchUnsplashHosted(query, 3);
+    if (first) return await candidateToAsset(first, opts.theme, query);
+  } catch {
+    /* belum masuk / gagal → jatuh ke seni generatif */
   }
   const [art] = artCandidates(query, opts.theme, 1, `v${opts.variant}-`);
   return candidateToAsset({ ...art, thumb: '' }, opts.theme, query);

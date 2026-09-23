@@ -30,7 +30,6 @@ export function GeneratingStage() {
         const result = await runGeneration({
           project,
           theme: resolveTheme(project.theme),
-          unsplashKey: '', // fitur foto stok pribadi (Unsplash) sudah dihapus — selalu seni generatif
           onProgress: (s, f) => {
             setStep(s);
             setFraction(f);
