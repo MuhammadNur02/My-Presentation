@@ -3,6 +3,11 @@ dist
 src/services/export/generated
 *.local
 
+# Berkas pribadi yang kadang tersimpan di folder ini secara tidak sengaja — bukan sumber proyek.
+*.mp4
+*.mov
+WhatsApp*
+
 # Rahasia — JANGAN PERNAH commit kunci API sungguhan (backend proxy, CI, dsb.)
 .env
 .env.*
