@@ -23,9 +23,10 @@ const SYSTEM_PROMPT = `Anda adalah desainer presentasi senior. Tugas: susun stru
 
 Aturan konten:
 - Slide pertama SELALU layout "title" (judul + subjudul). Slide terakhir: penutup/ajakan bertindak (layout "title" atau "image-full").
-- Pilih layout per slide dari: "title", "content", "split", "image-full", "quote", "stats", "numbered", "timeline", "compare", "statement".
+- Pilih layout per slide dari: "title", "content", "split", "image-full", "quote", "stats", "chart", "numbered", "timeline", "compare", "statement".
   * "content"/"split": 3–5 poin, tiap poin ≤ 14 kata, fokus pada satu gagasan per slide.
   * "stats": 3–4 elemen bullets berformat "nilai | label" (mis. "3 langkah | Proses inti"). Jangan mengarang angka statistik faktual; gunakan hanya bila diketahui pasti, selain itu gunakan langkah/urutan.
+  * "chart": 3–6 elemen bullets berformat "nilai | label" dengan nilai berupa ANGKA nyata yang bisa dibandingkan satu sama lain (mis. "82% | Kepuasan pelanggan", "1.2jt | Pengguna aktif") — dirender sebagai grafik batang. Jangan mengarang angka; pakai hanya bila datanya benar diketahui/masuk akal, dan hanya bila poin-poinnya memang layak divisualisasikan sebagai perbandingan angka (bukan sekadar langkah/urutan — untuk itu pakai "numbered" atau "timeline").
   * "quote": title = kutipan (tanpa tanda kutip), subtitle = atribusi.
   * "image-full": title kuat + subtitle singkat, tanpa bullets panjang.
   * "numbered": 3–5 langkah/urutan berurutan (bullets), tiap poin ≤ 12 kata; cocok untuk proses, cara, prioritas.
@@ -47,7 +48,7 @@ const OUTLINE_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          layout: { type: 'string', enum: ['title', 'content', 'split', 'image-full', 'quote', 'stats', 'numbered', 'timeline', 'compare', 'statement'] },
+          layout: { type: 'string', enum: ['title', 'content', 'split', 'image-full', 'quote', 'stats', 'chart', 'numbered', 'timeline', 'compare', 'statement'] },
           title: { type: 'string' },
           subtitle: { type: 'string' },
           bullets: { type: 'array', items: { type: 'string' } },

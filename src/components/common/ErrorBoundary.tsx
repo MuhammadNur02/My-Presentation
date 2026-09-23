@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     if (!this.state.error) return this.props.children;
     return (
       <div className="grid h-full place-items-center p-6">
-        <div className="glass max-w-md rounded-3xl border border-line p-7 text-center shadow-[var(--shadow-pop)]">
+        <div className="glass max-w-md rounded-3xl border border-line p-7 text-center shadow-(--shadow-pop)">
           <h1 className="text-lg font-semibold">Terjadi kesalahan tak terduga</h1>
           <p className="mt-2 text-sm text-muted">Proyek Anda tersimpan otomatis dan tidak hilang. Coba kembali ke beranda atau muat ulang halaman.</p>
           <pre className="mt-4 max-h-32 overflow-auto rounded-xl bg-field p-3 text-left text-[11px] text-muted">{this.state.error.message}</pre>

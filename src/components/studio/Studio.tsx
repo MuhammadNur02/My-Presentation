@@ -74,7 +74,7 @@ export function Studio() {
       <TopBar />
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(500px,42%)_1fr]">
         <aside className="glass order-2 flex min-h-0 border-line max-lg:border-t lg:order-1 lg:border-r">
-          <SlideList className="w-[176px] shrink-0 border-r border-line" />
+          <SlideList className="w-44 shrink-0 border-r border-line" />
           <div className="flex min-w-0 flex-1 flex-col">
             <nav className="flex gap-1 border-b border-line p-2" role="tablist" aria-label="Panel editor">
               {TABS.map((t) => (

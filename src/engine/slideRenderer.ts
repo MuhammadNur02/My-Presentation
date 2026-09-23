@@ -953,6 +953,85 @@ function layoutStats(L: L): void {
   });
 }
 
+/**
+ * Grafik batang: tiap butir "nilai | label" (format sama seperti `stats`/`timeline`) menjadi satu
+ * batang vertikal, tingginya proporsional terhadap nilai terbesar di antara semua butir. Angka
+ * diekstrak dari bagian "nilai" lewat regex (mendukung "%", satuan, dsb — hanya digit yang dipakai
+ * untuk menghitung tinggi); butir tanpa angka jatuh ke tinggi nol. Tiap batang = layer terpisah agar
+ * ikut animasi stagger otomatis (peran "body") dan bisa digeser manual satu per satu di panel Posisi.
+ */
+function layoutChart(L: L): void {
+  const { slide, theme, scale } = L;
+  const top = drawHeader(L);
+  const items = slide.bullets.slice(0, 6);
+  if (!items.length) return;
+
+  const parsed = items.map((text, i) => {
+    const { value, label } = splitStat(text, i);
+    const m = /-?\d+(?:[.,]\d+)?/.exec(value);
+    const num = m ? Math.max(0, parseFloat(m[0].replace(',', '.'))) : 0;
+    return { display: value, label, num };
+  });
+  const maxNum = Math.max(1, ...parsed.map((p) => p.num));
+
+  const gap = 32;
+  const n = parsed.length;
+  const barW = (W - M * 2 - gap * (n - 1)) / n;
+  const bottom = H - 158; // sumbu dasar: sisakan ruang untuk label kategori di bawahnya
+  const chartTop = Math.max(top + 70, 340);
+  const maxBarH = Math.max(80, bottom - chartTop);
+
+  add(L, {
+    id: 'axis',
+    role: 'decor',
+    rect: { x: M, y: bottom, w: W - M * 2, h: 2 },
+    abs: (ctx) => {
+      ctx.fillStyle = theme.border;
+      ctx.fillRect(M, bottom, W - M * 2, 2);
+    },
+  });
+
+  parsed.forEach((p, i) => {
+    const id = `bar-${i}`;
+    const slot = { x: M + i * (barW + gap), y: bottom - maxBarH, w: barW, h: maxBarH };
+    const r = place(L, id, slot);
+    const flip = i % 2 === 1;
+    add(L, {
+      id,
+      role: 'body',
+      motionRole: 'body',
+      order: 3 + i,
+      rect: r,
+      pad: 8,
+      edit: 'free',
+      abs: (ctx) => {
+        const barH = Math.max(12, Math.min(r.h, (p.num / maxNum) * r.h));
+        const by = bottom - barH;
+        const radius = Math.min(18, r.w / 2, barH / 2);
+        const g = ctx.createLinearGradient(0, by, 0, bottom);
+        g.addColorStop(0, flip ? theme.accent2 : theme.accent);
+        g.addColorStop(1, flip ? theme.accent : theme.accent2);
+        ctx.fillStyle = g;
+        roundRectPath(ctx, r.x, by, r.w, barH, radius);
+        ctx.fill();
+
+        fitValue(ctx, theme, p.display, 46 * scale, r.w + 12); // efek samping: men-set ctx.font ke ukuran yang muat
+        ctx.fillStyle = theme.text;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(p.display, r.x + r.w / 2, by - 16);
+
+        const labelW = r.w + gap * 0.7;
+        const lab = fitRichText(ctx, p.label, body(L, 28 * scale, 500, theme.muted), labelW, 74, 16, 1.25);
+        drawTextBlock(ctx, lab, r.x + r.w / 2 - labelW / 2, bottom + 20, labelW, 'center');
+
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+      },
+    });
+  });
+}
+
 /** Daftar bernomor: tiap poin = satu baris panel dengan angka besar bergradien. */
 function layoutNumbered(L: L): void {
   const { slide, theme, scale } = L;
@@ -1320,6 +1399,9 @@ export function buildLayers(slide: Slide, rc: RenderContext): SlideLayer[] {
     case 'stats':
       layoutStats(L);
       break;
+    case 'chart':
+      layoutChart(L);
+      break;
     case 'numbered':
       layoutNumbered(L);
       break;
@@ -1408,6 +1490,8 @@ function labelOf(l: SlideLayer): string {
       return 'Logo';
     case 'card':
       return `Kartu ${numOf(l.id)}`;
+    case 'bar':
+      return `Batang ${numOf(l.id)}`;
     case 'row':
       return `Baris ${numOf(l.id)}`;
     case 'step':

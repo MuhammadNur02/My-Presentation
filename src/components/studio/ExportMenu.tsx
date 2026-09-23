@@ -1,15 +1,16 @@
-import { Archive, Download, FileCode2, FileJson, Loader2 } from 'lucide-react';
+import { Archive, Download, FileCode2, FileJson, FileText, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useProjectStore } from '../../store/projectStore';
 import { useUIStore } from '../../store/uiStore';
 import { downloadBlob, slugify } from '../../utils/download';
 import { Button } from '../common/ui';
 
-type Kind = 'zip' | 'html' | 'json';
+type Kind = 'zip' | 'html' | 'pdf' | 'json';
 
 const ITEMS: { id: Kind; title: string; desc: string; icon: ReactNode }[] = [
   { id: 'zip', title: 'Paket ZIP (disarankan)', desc: 'index.html mandiri + aset + berkas proyek + README', icon: <Archive className="size-4" /> },
   { id: 'html', title: 'Satu berkas HTML', desc: 'Semua tertanam — buka offline di browser mana pun', icon: <FileCode2 className="size-4" /> },
+  { id: 'pdf', title: 'PDF', desc: 'Satu slide per halaman — untuk dicetak atau dilampirkan', icon: <FileText className="size-4" /> },
   { id: 'json', title: 'Berkas proyek (.json)', desc: 'Cadangan untuk diimpor kembali dan disunting', icon: <FileJson className="size-4" /> },
 ];
 
@@ -42,20 +43,29 @@ export function ExportMenu() {
     setBusy(kind);
     try {
       await new Promise((r) => setTimeout(r, 40)); // beri UI kesempatan menampilkan status
-      // Dimuat malas: modul ekspor membawa bundel runtime WebGL (~640 kB) yang tak perlu di muat awal.
-      const { buildStandaloneHtml, buildZip, projectToJson } = await import('../../services/export');
       const slug = slugify(project.name);
       let blob: Blob;
       let name: string;
-      if (kind === 'zip') {
-        blob = await buildZip(project);
-        name = `${slug}.zip`;
-      } else if (kind === 'html') {
-        blob = new Blob([buildStandaloneHtml(project)], { type: 'text/html;charset=utf-8' });
-        name = `${slug}.html`;
+      if (kind === 'pdf') {
+        // Dimuat malas TERPISAH dari modul ekspor lain: jsPDF membawa sub-dependensi berat
+        // (html2canvas/canvg/DOMPurify, meski tak pernah dipakai kode ini) — mengimpornya lewat
+        // barrel `services/export` yang sama akan ikut membebani unduhan ZIP/HTML/JSON juga.
+        const { buildPdf } = await import('../../services/export/buildPdf');
+        blob = await buildPdf(project);
+        name = `${slug}.pdf`;
       } else {
-        blob = new Blob([projectToJson(project)], { type: 'application/json' });
-        name = `${slug}.morphdeck.json`;
+        // Dimuat malas: modul ekspor membawa bundel runtime WebGL (~640 kB) yang tak perlu di muat awal.
+        const { buildStandaloneHtml, buildZip, projectToJson } = await import('../../services/export');
+        if (kind === 'zip') {
+          blob = await buildZip(project);
+          name = `${slug}.zip`;
+        } else if (kind === 'html') {
+          blob = new Blob([buildStandaloneHtml(project)], { type: 'text/html;charset=utf-8' });
+          name = `${slug}.html`;
+        } else {
+          blob = new Blob([projectToJson(project)], { type: 'application/json' });
+          name = `${slug}.morphdeck.json`;
+        }
       }
       downloadBlob(blob, name);
       toast(`${name} diunduh (${(blob.size / 1024 / 1024).toFixed(1)} MB).`, 'success');
@@ -74,7 +84,7 @@ export function ExportMenu() {
         <span className="max-lg:hidden">Download</span>
       </Button>
       {open && (
-        <div className="pop-in absolute right-0 top-full z-40 mt-2 w-80 overflow-hidden rounded-2xl border border-line bg-solid p-1.5 shadow-[var(--shadow-pop)]">
+        <div className="pop-in absolute right-0 top-full z-40 mt-2 w-80 overflow-hidden rounded-2xl border border-line bg-solid p-1.5 shadow-(--shadow-pop)">
           {items.map((it) => (
             <button
               key={it.id}

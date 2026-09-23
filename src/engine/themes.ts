@@ -8,11 +8,20 @@ const SANS =
   '"SF Pro Display","Segoe UI Variable Display","Segoe UI",Inter,system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif';
 const SERIF = '"New York","Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif';
 const MONO = '"SF Mono","Cascadia Code",Consolas,"Liberation Mono",Menlo,monospace';
+// Empat gaya tambahan disematkan sebagai berkas font asli (base64, offline) — lihat `embeddedFonts.ts`.
+const GROTESK = '"Space Grotesk",' + SANS;
+const ELEGANT = '"Playfair Display",' + SERIF;
+const ROUNDED = '"Poppins",' + SANS;
+const CONDENSED = '"Bebas Neue",' + SANS;
 
 export const FONT_STACKS: Record<FontStyle, { heading: string; body: string; label: string }> = {
   sans: { heading: SANS, body: SANS, label: 'Modern Sans' },
   serif: { heading: SERIF, body: SANS, label: 'Editorial Serif' },
   mono: { heading: MONO, body: SANS, label: 'Technical Mono' },
+  grotesk: { heading: GROTESK, body: GROTESK, label: 'Geometric Grotesk' },
+  elegant: { heading: ELEGANT, body: SANS, label: 'Elegant Display' },
+  rounded: { heading: ROUNDED, body: ROUNDED, label: 'Friendly Rounded' },
+  condensed: { heading: CONDENSED, body: SANS, label: 'Bold Condensed' },
 };
 
 interface ThemePreset {

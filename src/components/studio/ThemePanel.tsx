@@ -96,11 +96,27 @@ export function ThemePanel() {
 
       <section className="space-y-3">
         <SectionTitle>Tipografi</SectionTitle>
-        <Segmented<FontStyle>
-          value={cfg.fontStyle}
-          onChange={(fontStyle) => setTheme({ fontStyle })}
-          options={(Object.keys(FONT_STACKS) as FontStyle[]).map((k) => ({ id: k, label: FONT_STACKS[k].label.split(' ')[0] }))}
-        />
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(FONT_STACKS) as FontStyle[]).map((k) => {
+            const active = cfg.fontStyle === k;
+            return (
+              <button
+                key={k}
+                onClick={() => setTheme({ fontStyle: k })}
+                aria-pressed={active}
+                className={cn(
+                  'rounded-xl border px-3 py-2.5 text-left transition',
+                  active ? 'border-accent bg-accent-soft' : 'border-transparent bg-field hover:border-accent/40',
+                )}
+              >
+                <span className="block truncate text-lg leading-tight" style={{ fontFamily: FONT_STACKS[k].heading }}>
+                  Aa
+                </span>
+                <span className={cn('mt-0.5 block truncate text-[11px] font-medium', active ? 'text-accent' : 'text-muted')}>{FONT_STACKS[k].label}</span>
+              </button>
+            );
+          })}
+        </div>
         <Switch label="Nomor slide" checked={cfg.showSlideNumber} onChange={(v) => setTheme({ showSlideNumber: v })} />
       </section>
 

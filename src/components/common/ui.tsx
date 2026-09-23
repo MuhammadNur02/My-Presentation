@@ -158,7 +158,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
     >
       <span>{label}</span>
       <span className={cn('relative h-6 w-10 shrink-0 rounded-full transition', checked ? 'bg-accent' : 'bg-field-hover')}>
-        <span className={cn('absolute top-0.5 size-5 rounded-full bg-white shadow transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
+        <span className={cn('absolute top-0.5 size-5 rounded-full bg-white shadow transition-all', checked ? 'left-4.5' : 'left-0.5')} />
       </span>
     </button>
   );

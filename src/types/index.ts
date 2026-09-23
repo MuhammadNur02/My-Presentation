@@ -56,7 +56,8 @@ export type LayoutId =
   | 'numbered'
   | 'timeline'
   | 'compare'
-  | 'statement';
+  | 'statement'
+  | 'chart';
 
 /** Animasi masuk elemen. `mix` = variasi otomatis per elemen (tiap elemen memakai gaya berbeda). */
 export type BuildAnimation =
@@ -184,7 +185,7 @@ export interface Asset {
   dataUrl: string;
   width: number;
   height: number;
-  source: 'upload' | 'art' | 'stock';
+  source: 'upload' | 'art' | 'stock' | 'ai';
   credit?: string;
   /** Ada = aset ini animasi/video (lihat AssetAnim). */
   anim?: AssetAnim;
@@ -192,7 +193,7 @@ export interface Asset {
 
 export type Tone = 'professional' | 'creative' | 'minimal' | 'educational';
 export type Language = 'id' | 'en';
-export type FontStyle = 'sans' | 'serif' | 'mono';
+export type FontStyle = 'sans' | 'serif' | 'mono' | 'grotesk' | 'elegant' | 'rounded' | 'condensed';
 export type PatternId = 'none' | 'dots' | 'grid' | 'diagonal' | 'arcs' | 'waves';
 
 export interface ThemeConfig {

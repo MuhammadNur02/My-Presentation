@@ -1,6 +1,7 @@
 import {
   AlignLeft,
   BarChart3,
+  ChartColumn,
   Columns2,
   Film,
   GitCompare,
@@ -34,6 +35,7 @@ const LAYOUTS: { id: LayoutId; label: string; icon: ReactNode }[] = [
   { id: 'image-full', label: 'Gambar penuh', icon: <ImageIcon className="size-4" /> },
   { id: 'quote', label: 'Kutipan', icon: <Quote className="size-4" /> },
   { id: 'stats', label: 'Statistik', icon: <BarChart3 className="size-4" /> },
+  { id: 'chart', label: 'Grafik', icon: <ChartColumn className="size-4" /> },
   { id: 'numbered', label: 'Bernomor', icon: <ListOrdered className="size-4" /> },
   { id: 'timeline', label: 'Linimasa', icon: <Milestone className="size-4" /> },
   { id: 'compare', label: 'Bandingkan', icon: <GitCompare className="size-4" /> },
@@ -43,6 +45,7 @@ const LAYOUTS: { id: LayoutId; label: string; icon: ReactNode }[] = [
 /** Petunjuk format poin per layout. */
 const BULLET_HINT: Partial<Record<LayoutId, string>> = {
   stats: 'format: nilai | label',
+  chart: 'format: nilai | label (mis. "82% | Kepuasan pelanggan")',
   timeline: 'format: tahun | keterangan',
   compare: 'pisahkan dua sisi dengan baris ---',
   numbered: 'maks. 5 poin',

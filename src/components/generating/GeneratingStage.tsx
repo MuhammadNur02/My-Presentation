@@ -69,7 +69,7 @@ export function GeneratingStage() {
         <div className="absolute left-[40%] top-[52%] size-[26vmax] rounded-full bg-rose-400/15 blur-3xl" style={{ animation: 'orb 22s ease-in-out infinite' }} />
       </div>
 
-      <div className="glass relative w-full max-w-xl rounded-[28px] border border-line p-8 shadow-[var(--shadow-pop)]" role="status" aria-live="polite">
+      <div className="glass relative w-full max-w-xl rounded-[28px] border border-line p-8 shadow-(--shadow-pop)" role="status" aria-live="polite">
         <h1 className="text-2xl font-semibold tracking-tight">AI sedang merancang presentasi Anda</h1>
         <p className="mt-1.5 text-sm text-muted">Beberapa detik saja — menyusun tata letak, animasi, gambar, dan transisi 3D.</p>
 
@@ -104,7 +104,7 @@ export function GeneratingStage() {
         {titles.length > 0 && (
           <div className="mt-6 flex flex-wrap gap-1.5" aria-hidden>
             {titles.map((t, i) => (
-              <span key={i} className="max-w-[10rem] truncate rounded-full bg-field px-2.5 py-1 text-[11px] text-muted">
+              <span key={i} className="max-w-40 truncate rounded-full bg-field px-2.5 py-1 text-[11px] text-muted">
                 {t}
               </span>
             ))}

@@ -169,7 +169,7 @@ export function LivePreview() {
           <div
             ref={containerRef}
             className={cn(
-              'aspect-video w-full overflow-hidden rounded-2xl bg-black shadow-[var(--shadow-pop)] ring-1 ring-line',
+              'aspect-video w-full overflow-hidden rounded-2xl bg-black shadow-(--shadow-pop) ring-1 ring-line',
               hoverId && 'cursor-pointer',
             )}
             aria-label="Pratinjau langsung WebGL"
@@ -218,7 +218,7 @@ export function LivePreview() {
             Putar transisi
           </Button>
 
-          <div className="ml-auto flex min-w-[220px] flex-1 items-center gap-2.5">
+          <div className="ml-auto flex min-w-55 flex-1 items-center gap-2.5">
             <Gauge className="size-4 shrink-0 text-muted" aria-hidden />
             <input
               type="range"

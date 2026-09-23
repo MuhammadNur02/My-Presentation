@@ -1,3 +1,4 @@
+import { functionErrorMessage } from './functionError';
 import { supabase } from './supabase';
 
 export interface CreditPackage {
@@ -24,7 +25,7 @@ export async function startCreditCheckout(packageId: string): Promise<string> {
   const { data, error } = await supabase.functions.invoke<{ invoiceUrl: string }>('create-xendit-transaction', {
     body: { packageId },
   });
-  if (error) throw new Error(error.message || 'Gagal membuat transaksi pembayaran');
+  if (error) throw new Error(await functionErrorMessage(error, 'Gagal membuat transaksi pembayaran'));
   if (!data?.invoiceUrl) throw new Error('Respons pembayaran tidak lengkap');
   return data.invoiceUrl;
 }

@@ -25,6 +25,14 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 /** 1 kredit = 1 panggilan AI (flat, untuk MVP — bisa dibedakan per jenis panggilan nanti). */
 const CREDIT_COST_PER_CALL = 1;
+/**
+ * HARUS sama dengan `HOSTED_MODEL` di `src/services/supabase.ts`. Biaya kredit dihitung berasumsi
+ * model ini — tanpa dipaksakan di sini, siapa pun yang memanggil endpoint ini langsung (bukan lewat
+ * UI) bisa minta model lain yang lebih mahal atau `max_tokens` raksasa, tetap cuma bayar 1 kredit flat.
+ */
+const HOSTED_MODEL = 'claude-sonnet-5';
+/** Pemakaian sah terbesar saat ini (outline lengkap) minta 12000 — beri sedikit ruang, bukan tak terbatas. */
+const MAX_TOKENS_CEILING = 16000;
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = corsHeaders(req);
@@ -46,7 +54,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   const uid = userData.user.id;
 
-  // 2) Potong kredit SEBELUM memanggil Anthropic (fungsi SQL atomik) — kalau habis, tolak di sini
+  // 2) Baca & kunci field yang mempengaruhi biaya SEBELUM memotong kredit — badan permintaan boleh
+  //    membawa apa pun (messages, system, tools, dst.), tapi model & batas token WAJIB dikendalikan
+  //    di sini, supaya biaya Anthropic asli tidak pernah bisa melebihi yang sudah diperhitungkan di
+  //    harga kredit (tanpa ini, siapa pun yang memanggil endpoint ini langsung — bukan lewat UI —
+  //    bisa minta model lain yang lebih mahal atau `max_tokens` raksasa, tetap cuma bayar 1 kredit).
+  const rawBody = await req.text();
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    return json({ type: 'error', error: { type: 'invalid_request_error', message: 'Badan permintaan bukan JSON yang valid.' } }, 400, cors);
+  }
+  payload.model = HOSTED_MODEL;
+  if (typeof payload.max_tokens !== 'number' || !Number.isFinite(payload.max_tokens) || payload.max_tokens < 1 || payload.max_tokens > MAX_TOKENS_CEILING) {
+    payload.max_tokens = MAX_TOKENS_CEILING;
+  }
+  const body = JSON.stringify(payload);
+
+  // 3) Potong kredit SEBELUM memanggil Anthropic (fungsi SQL atomik) — kalau habis, tolak di sini
   //    tanpa membebani biaya API sama sekali.
   const { error: spendErr } = await supabase.rpc('spend_credits', { p_uid: uid, p_amount: CREDIT_COST_PER_CALL });
   if (spendErr) {
@@ -56,9 +82,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ type: 'error', error: { type: 'internal_error', message: spendErr.message } }, 500, cors);
   }
 
-  // 3) Teruskan body APA ADANYA ke Anthropic dengan kunci ASLI (server-only secret).
+  const refund = async (note: string) => {
+    const { error } = await supabase.rpc('add_credits', { p_uid: uid, p_amount: CREDIT_COST_PER_CALL, p_note: note });
+    if (error) console.error('Gagal mengembalikan kredit:', error.message);
+  };
+
+  // 4) Teruskan ke Anthropic dengan kunci ASLI (server-only secret).
   try {
-    const body = await req.text();
     const upstream = await fetch(ANTHROPIC_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': ANTHROPIC_VERSION },
@@ -67,13 +97,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const text = await upstream.text();
     if (upstream.status >= 400) {
       // Anthropic menolak permintaan (mis. saldo API akun ini habis, topik ditolak, dll.) — kembalikan
-      // kredit yang sudah dipotong di langkah 2 supaya pengguna tidak membayar untuk permintaan gagal.
-      const { error: refundErr } = await supabase.rpc('add_credits', {
-        p_uid: uid,
-        p_amount: CREDIT_COST_PER_CALL,
-        p_note: `Pengembalian otomatis — Anthropic mengembalikan galat ${upstream.status}`,
-      });
-      if (refundErr) console.error('Gagal mengembalikan kredit setelah galat upstream:', refundErr.message);
+      // kredit yang sudah dipotong di langkah 3 supaya pengguna tidak membayar untuk permintaan gagal.
+      await refund(`Pengembalian otomatis — Anthropic mengembalikan galat ${upstream.status}`);
     }
     return new Response(text, {
       status: upstream.status,
@@ -81,12 +106,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   } catch (err) {
     // Anthropic sama sekali tidak terhubungi (bukan sekadar menolak) — kembalikan kredit juga.
-    const { error: refundErr } = await supabase.rpc('add_credits', {
-      p_uid: uid,
-      p_amount: CREDIT_COST_PER_CALL,
-      p_note: 'Pengembalian otomatis — tidak dapat menghubungi Anthropic',
-    });
-    if (refundErr) console.error('Gagal mengembalikan kredit setelah galat jaringan:', refundErr.message);
+    await refund('Pengembalian otomatis — tidak dapat menghubungi Anthropic');
     return json(
       { type: 'error', error: { type: 'api_error', message: `Tidak dapat menghubungi Anthropic: ${err instanceof Error ? err.message : 'galat jaringan'}` } },
       502,

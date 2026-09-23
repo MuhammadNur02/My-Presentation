@@ -48,7 +48,7 @@ export function ProfilePage() {
   if (!user) {
     return (
       <div className="grid h-full place-items-center p-8">
-        <div className="glass max-w-sm rounded-3xl border border-line p-8 text-center shadow-[var(--shadow-pop)]">
+        <div className="glass max-w-sm rounded-3xl border border-line p-8 text-center shadow-(--shadow-pop)">
           <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-accent-soft text-accent">
             <UserRound className="size-6" />
           </span>

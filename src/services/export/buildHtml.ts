@@ -1,3 +1,4 @@
+import { EMBEDDED_FONTS_CSS } from '../../engine/embeddedFonts';
 import { resolveTheme } from '../../engine/themes';
 import type { AssetAnim, DeckData, Project } from '../../types';
 // Bundel IIFE hasil `npm run build:runtime` (engine WebGL + player), di-embed apa adanya.
@@ -7,18 +8,31 @@ import { RUNTIME_CSS } from './runtimeCss';
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-/** Data deck untuk ekspor: hanya aset yang benar-benar dipakai (mengecilkan ukuran berkas). */
-export function collectDeckData(project: Project): DeckData {
+/** Id aset (foto + logo) yang benar-benar dipakai project ini — dasar untuk mengecilkan ukuran berkas ekspor. */
+function usedAssetIds(project: Project): Set<string> {
   const used = new Set<string>();
   project.slides.forEach((s) => s.imageId && used.add(s.imageId));
   if (project.logoId) used.add(project.logoId);
+  return used;
+}
+
+/** Data URL gambar (poster diam) tiap aset yang dipakai — dibagikan oleh `collectDeckData` (HTML/ZIP) dan `buildPdf`. */
+export function collectUsedImageUrls(project: Project): Record<string, string> {
   const images: Record<string, string> = {};
-  const anims: Record<string, AssetAnim> = {};
-  used.forEach((id) => {
+  usedAssetIds(project).forEach((id) => {
     const a = project.assets[id];
-    if (!a) return;
-    images[id] = a.dataUrl;
-    if (a.anim) anims[id] = a.anim;
+    if (a) images[id] = a.dataUrl;
+  });
+  return images;
+}
+
+/** Data deck untuk ekspor: hanya aset yang benar-benar dipakai (mengecilkan ukuran berkas). */
+export function collectDeckData(project: Project): DeckData {
+  const images = collectUsedImageUrls(project);
+  const anims: Record<string, AssetAnim> = {};
+  usedAssetIds(project).forEach((id) => {
+    const a = project.assets[id];
+    if (a?.anim) anims[id] = a.anim;
   });
   return {
     slides: project.slides,
@@ -53,7 +67,7 @@ export function buildStandaloneHtml(project: Project): string {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="generator" content="MorphDeck">
 <title>${escapeHtml(project.name)}</title>
-<style>${RUNTIME_CSS}</style>
+<style>${RUNTIME_CSS}${EMBEDDED_FONTS_CSS}</style>
 </head>
 <body>
 <div id="app"></div>

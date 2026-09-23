@@ -35,6 +35,11 @@ export async function parseDocx(file: File): Promise<ParsedDoc> {
         if (row) ensure().bullets.push(row);
       });
     } else {
+      // `mammoth` menyisipkan gambar sebagai <img src="data:..."> langsung di HTML (bawaan,
+      // tanpa konfigurasi tambahan) — ambil yang pertama per bagian sebelum diabaikan sebagai teks kosong.
+      const img = el.querySelector('img[src^="data:"]') ?? (el.tagName.toLowerCase() === 'img' ? el : null);
+      const src = img?.getAttribute('src');
+      if (src && !ensure().imageDataUrl) ensure().imageDataUrl = src;
       const t = text(el);
       if (t) ensure().paragraphs.push(t);
     }

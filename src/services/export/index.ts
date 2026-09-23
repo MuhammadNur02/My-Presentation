@@ -6,6 +6,10 @@ import { projectToJson } from './projectJson';
 
 export { buildStandaloneHtml } from './buildHtml';
 export { projectToJson } from './projectJson';
+// `buildPdf` SENGAJA tidak diekspor dari barrel ini: jsPDF membawa sub-dependensi berat
+// (html2canvas/canvg/DOMPurify) yang tak pernah dipakai — mengimpornya di sini akan ikut
+// membebani unduhan ZIP/HTML/JSON juga. Impor langsung dari './buildPdf' saat benar-benar
+// dibutuhkan (lihat ExportMenu.tsx).
 
 const README = (name: string, includesProjectFile: boolean) => `${name}
 ${'='.repeat(name.length)}

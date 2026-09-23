@@ -1,17 +1,20 @@
 import { gsap } from 'gsap';
-import { Film, Image } from 'lucide-react';
+import { Film } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginPage } from './components/auth/LoginPage';
 import { Toaster } from './components/common/Toaster';
 import { ComingSoonPage } from './components/dashboard/ComingSoonPage';
 import { DashboardLayout } from './components/dashboard/DashboardLayout';
+import { GenerateImagePage } from './components/dashboard/GenerateImagePage';
 import { HelpPage } from './components/dashboard/HelpPage';
 import { ProfilePage } from './components/dashboard/ProfilePage';
 import { ProjectsPage } from './components/dashboard/ProjectsPage';
 import { LandingPage } from './components/marketing/LandingPage';
 import { Onboarding } from './components/onboarding/Onboarding';
 import { PresentationMode } from './components/presentation/PresentationMode';
+import { PresenterConsole } from './components/presentation/PresenterConsole';
+import { RemoteControlPage } from './components/presentation/RemoteControlPage';
 import { BillingModal } from './components/studio/BillingModal';
 import { SettingsModal } from './components/studio/SettingsModal';
 import { VersionHistory } from './components/studio/VersionHistory';
@@ -82,16 +85,15 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/presenter-console" element={<PresenterConsole />} />
+          <Route path="/remote" element={<RemoteControlPage />} />
 
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Navigate to="projects" replace />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="editor" element={<Onboarding mode="import" />} />
             <Route path="generate" element={<Onboarding mode="prompt" />} />
-            <Route
-              path="generate-image"
-              element={<ComingSoonPage title="AI Generate Gambar" description="Buat ilustrasi pendukung dari prompt teks — menyusul di fase berikutnya." icon={<Image className="size-6" />} />}
-            />
+            <Route path="generate-image" element={<GenerateImagePage />} />
             <Route
               path="generate-gif"
               element={<ComingSoonPage title="AI Generate Animasi GIF" description="Render animasi bergerak singkat dari prompt teks — menyusul di fase berikutnya." icon={<Film className="size-6" />} />}

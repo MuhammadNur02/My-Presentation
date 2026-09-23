@@ -22,7 +22,7 @@ export interface Outline {
   slides: OutlineSlide[];
 }
 
-const LAYOUTS: LayoutId[] = ['auto', 'title', 'content', 'split', 'image-full', 'quote', 'stats', 'numbered', 'timeline', 'compare', 'statement'];
+const LAYOUTS: LayoutId[] = ['auto', 'title', 'content', 'split', 'image-full', 'quote', 'stats', 'chart', 'numbered', 'timeline', 'compare', 'statement'];
 
 const str = (v: unknown, max = 400): string => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 

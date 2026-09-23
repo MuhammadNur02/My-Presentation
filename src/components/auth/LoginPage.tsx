@@ -20,7 +20,7 @@ export function LoginPage() {
 
   return (
     <StageShell className="aurora grid h-full place-items-center px-6">
-      <div className="glass w-full max-w-sm rounded-[28px] border border-line p-8 text-center shadow-[var(--shadow-pop)]">
+      <div className="glass w-full max-w-sm rounded-[28px] border border-line p-8 text-center shadow-(--shadow-pop)">
         <BrandMark size={40} />
         <h1 className="mt-4 text-xl font-semibold">Masuk ke MorphDeck</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">

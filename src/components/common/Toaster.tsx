@@ -17,7 +17,7 @@ export function Toaster() {
           <div
             key={t.id}
             role="status"
-            className="pop-in glass pointer-events-auto flex max-w-xl items-center gap-3 rounded-2xl border border-line px-4 py-3 text-sm shadow-[var(--shadow-pop)]"
+            className="pop-in glass pointer-events-auto flex max-w-xl items-center gap-3 rounded-2xl border border-line px-4 py-3 text-sm shadow-(--shadow-pop)"
           >
             <Icon className={cn('size-4 shrink-0', TONE[t.kind])} />
             <span className="min-w-0 flex-1">{t.message}</span>

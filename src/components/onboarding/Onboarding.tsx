@@ -154,8 +154,10 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
         // Impor dokumen = mode gratis: tak memakai AI berbayar, tapi fitur AI/ekspor sumber dibatasi
         // dan presentasinya memakai watermark — lihat `Project.tier`.
         useProjectStore.getState().createProject({ name: result.title, tone, language, slides: result.slides, tier: 'free' });
+        Object.values(result.assets).forEach((a) => useProjectStore.getState().addAsset(a));
         useUIStore.getState().setStage('outline');
-        toast(`${result.source}: ${result.slides.length} slide berhasil diimpor. Mode gratis: fitur AI & ekspor sumber dibatasi.`, 'success');
+        const imgNote = Object.keys(result.assets).length ? ` (${Object.keys(result.assets).length} gambar ikut terekstrak)` : '';
+        toast(`${result.source}: ${result.slides.length} slide berhasil diimpor${imgNote}. Mode gratis: fitur AI & ekspor sumber dibatasi.`, 'success');
       }
       navigate('/dashboard/studio');
     } catch (err) {
@@ -213,7 +215,7 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
           )}
         </section>
 
-        <section className="glass mx-auto mt-10 w-full max-w-3xl rounded-[28px] border border-line p-5 shadow-[var(--shadow-pop)] sm:p-7">
+        <section className="glass mx-auto mt-10 w-full max-w-3xl rounded-[28px] border border-line p-5 shadow-(--shadow-pop) sm:p-7">
           {mode === 'prompt' ? (
             <div className="space-y-5">
               <Field label="Topik presentasi">
@@ -300,7 +302,10 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
                 </span>
                 <div>
                   <p className="text-[15px] font-medium">Tarik berkas ke sini</p>
-                  <p className="mt-1 text-xs text-muted">PPTX · PDF · DOCX · TXT/MD · proyek MorphDeck (.json) — diproses di perangkat Anda, tidak diunggah ke server.</p>
+                  <p className="mt-1 text-xs text-muted">
+                    PPTX · PDF · DOCX · TXT/MD · proyek MorphDeck (.json) — diproses di perangkat Anda, tidak diunggah ke server. Format lawas PPT/DOC
+                    juga didukung (dikonversi otomatis lewat layanan online, singkat, sebelum diproses).
+                  </p>
                 </div>
                 <Button variant="primary" loading={busy === 'import'} onClick={() => fileRef.current?.click()}>
                   Pilih berkas
