@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { resolveTheme } from '../../engine';
 import { GENERATION_STEPS, runGeneration } from '../../services/ai/designEngine';
 import { useProjectStore } from '../../store/projectStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
 import { cn } from '../../utils/cn';
 import { StageShell } from '../common/StageShell';
@@ -31,7 +30,7 @@ export function GeneratingStage() {
         const result = await runGeneration({
           project,
           theme: resolveTheme(project.theme),
-          unsplashKey: useSettingsStore.getState().unsplashKey,
+          unsplashKey: '', // fitur foto stok pribadi (Unsplash) sudah dihapus — selalu seni generatif
           onProgress: (s, f) => {
             setStep(s);
             setFraction(f);

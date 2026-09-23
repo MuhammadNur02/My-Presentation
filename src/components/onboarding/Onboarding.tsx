@@ -2,14 +2,13 @@ import { ArrowRight, FilePlus2, FileUp, FolderOpen, Sparkles, Trash2, Wand2 } fr
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ACCEPTED_TYPES, importFile } from '../../services/importers';
-import { describeLlmError, generateOutlineWithLLM, isInsufficientCreditsError, llmConfigured } from '../../services/ai/llm';
+import { describeLlmError, generateOutlineWithLLM, isInsufficientCreditsError } from '../../services/ai/llm';
 import { generateMockOutline } from '../../services/ai/mockGenerator';
 import { outlineToSlides, type Outline } from '../../services/ai/outline';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { CLAUDE_PROXY_URL, HOSTED_MODEL } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
 import type { Language, Tone } from '../../types';
 import { cn } from '../../utils/cn';
@@ -83,13 +82,12 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
   // Placeholder "mesin ketik": contoh topik berganti-ganti sendiri; berhenti begitu pengguna mengisi kolom.
   const typedPlaceholder = useTypewriter(EXAMPLES, { active: topic.length === 0 });
 
-  const settings = useSettingsStore();
   const session = useAuthStore((s) => s.session);
   const credits = useAuthStore((s) => s.credits);
-  // Masuk dengan Google → pakai backend hosted (kredit akun, tanpa perlu kunci API sendiri).
-  // Belum masuk → pakai kunci Anthropic pribadi dari Pengaturan bila diisi, atau mode simulasi.
+  // Semua pembuatan AI memakai backend hosted (kunci milik aplikasi, dibayar lewat kredit akun) —
+  // tanpa kunci API pribadi. Belum masuk Google → mode simulasi offline (tanpa AI sungguhan).
   const usingHosted = !!session;
-  const hasLlm = usingHosted || llmConfigured({ apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl });
+  const hasLlm = usingHosted;
   // Kredit sudah diketahui (bukan null, artinya sudah selesai dimuat dari server) dan habis — blokir
   // di sini SEBELUM mencoba memanggil AI, supaya pengguna tidak menunggu lalu baru tahu gagal.
   const outOfCredits = usingHosted && credits !== null && credits <= 0;
@@ -109,13 +107,11 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
     abortRef.current = ac;
     setBusy('ai');
     const req = { topic, tone, language, slideCount: count };
-    // Model hosted TETAP (bukan pilihan pengguna) demi kendali biaya API pemilik — lihat HOSTED_MODEL.
-    const llmCfg = usingHosted
-      ? { apiKey: session.access_token, model: HOSTED_MODEL, baseUrl: CLAUDE_PROXY_URL }
-      : { apiKey: settings.anthropicKey, model: settings.anthropicModel, baseUrl: settings.anthropicBaseUrl };
     try {
       let outline: Outline;
-      if (hasLlm) {
+      if (hasLlm && session) {
+        // Model hosted TETAP (bukan pilihan pengguna) demi kendali biaya API pemilik — lihat HOSTED_MODEL.
+        const llmCfg = { apiKey: session.access_token, model: HOSTED_MODEL, baseUrl: CLAUDE_PROXY_URL };
         try {
           outline = await generateOutlineWithLLM(req, llmCfg, ac.signal);
         } catch (err) {
@@ -254,15 +250,11 @@ export function Onboarding({ mode }: { mode: 'prompt' | 'import' }) {
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <button
-                  onClick={() => useUIStore.getState().openModal(usingHosted ? 'billing' : 'settings')}
+                  onClick={() => (usingHosted ? useUIStore.getState().openModal('billing') : navigate('/login'))}
                   className="flex items-center gap-2 text-xs text-muted hover:text-fg"
                 >
                   <span className={cn('size-2 rounded-full', hasLlm ? 'bg-emerald-400' : 'bg-amber-400')} />
-                  {usingHosted
-                    ? `Claude aktif · ${credits ?? '…'} kredit tersisa`
-                    : hasLlm
-                      ? `Claude aktif · ${settings.anthropicModel}`
-                      : 'Mode simulasi offline · masuk dengan Google atau atur API key sendiri'}
+                  {usingHosted ? `Claude aktif · ${credits ?? '…'} kredit tersisa` : 'Mode simulasi offline · masuk dengan Google untuk AI sungguhan'}
                 </button>
                 <div className="flex gap-2">
                   {busy === 'ai' && <Button onClick={() => abortRef.current?.abort()}>Batal</Button>}

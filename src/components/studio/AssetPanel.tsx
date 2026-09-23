@@ -5,7 +5,6 @@ import { useAssets } from '../../hooks/useAssets';
 import { imageQueryFor } from '../../services/ai/keywords';
 import { candidateToAsset, searchImages, type ImageCandidate } from '../../services/ai/imageProvider';
 import { useProjectStore } from '../../store/projectStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
 import type { Slide } from '../../types';
 import { cn } from '../../utils/cn';
@@ -15,7 +14,6 @@ import { AnimationPanel } from './AnimationPanel';
 /** Pustaka aset: unggah lokal, cari stok/generatif, pakai ulang di slide, kelola logo. */
 export function AssetPanel({ slide }: { slide: Slide }) {
   const project = useProjectStore((s) => s.project)!;
-  const unsplashKey = useSettingsStore((s) => s.unsplashKey);
   const { busy, uploadImage, uploadLogo } = useAssets();
   const fileRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
@@ -37,9 +35,10 @@ export function AssetPanel({ slide }: { slide: Slide }) {
     setSearching(true);
     setNote('');
     try {
-      const { candidates, note: n } = await searchImages(q, { unsplashKey, theme, count: 6 });
+      // Tanpa kunci Unsplash (fitur foto stok pribadi sudah dihapus) — selalu ilustrasi generatif.
+      const { candidates, note: n } = await searchImages(q, { unsplashKey: '', theme, count: 6 });
       setResults(candidates);
-      setNote(n ?? (unsplashKey ? '' : 'Mode offline: ilustrasi generatif. Tambahkan kunci Unsplash di Pengaturan untuk foto stok.'));
+      setNote(n ?? 'Ilustrasi generatif — beberapa variasi baru dibuat dari kata kunci ini.');
     } finally {
       setSearching(false);
     }

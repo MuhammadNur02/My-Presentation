@@ -3,7 +3,6 @@ import { resolveTheme } from '../engine';
 import { imageQueryFor } from '../services/ai/keywords';
 import { contextImageAsset } from '../services/ai/imageProvider';
 import { useProjectStore } from '../store/projectStore';
-import { useSettingsStore } from '../store/settingsStore';
 import { useUIStore } from '../store/uiStore';
 import { fileToAsset } from '../utils/image';
 import { isMotionFile, motionFileToAsset, sceneAsset } from '../services/media/assets';
@@ -124,7 +123,7 @@ export function useAssets() {
     }
   }, []);
 
-  /** Buat/ganti gambar kontekstual untuk slide (Unsplash bila kunci ada, selain itu seni generatif). */
+  /** Buat/ganti gambar kontekstual untuk slide (seni generatif — fitur foto stok pribadi sudah dihapus). */
   const generateForSlide = useCallback(async (slideId: string) => {
     const store = useProjectStore.getState();
     const project = store.project;
@@ -134,7 +133,7 @@ export function useAssets() {
       setBusy(true);
       const query = slide.imageQuery.trim() || imageQueryFor(slide.title, slide.subtitle);
       const asset = await contextImageAsset(query, {
-        unsplashKey: useSettingsStore.getState().unsplashKey,
+        unsplashKey: '',
         theme: resolveTheme(project.theme),
         variant: Math.floor(Math.random() * 10_000),
       });
